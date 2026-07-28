@@ -1,4 +1,5 @@
-## Interface: 120000
+## X-Curse-Project-ID: 1628535
+## Interface: 120007
 ## Title: SimpleLootInfo
 ## Notes: Show item type, equipment slot and item level in front of gear links in chat.
 ## Author: Zane
