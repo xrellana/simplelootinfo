@@ -1,0 +1,10 @@
+# Packaged releases — rebuilt from source, published on CurseForge
+/dist/
+
+# Editor and OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~
