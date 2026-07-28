@@ -1,6 +1,6 @@
 ## Interface: 120000
 ## Title: SimpleLootInfo
-## Notes: Show armor type, slot and item level in loot chat messages.
+## Notes: Show item type, equipment slot and item level in front of gear links in chat.
 ## Author: Zane
 ## Version: 1.0
 

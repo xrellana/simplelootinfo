@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Simple Loot Info">
+  <title>Simple Loot Info</title>
+  <defs>
+    <radialGradient id="a-bg" cx="50%" cy="34%" r="78%">
+      <stop offset="0%" stop-color="#3b3022"/>
+      <stop offset="100%" stop-color="#0f0d09"/>
+    </radialGradient>
+    <linearGradient id="a-gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffeaa9"/>
+      <stop offset="45%" stop-color="#e6b243"/>
+      <stop offset="100%" stop-color="#8a5710"/>
+    </linearGradient>
+    <linearGradient id="a-bubble" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#241d14"/>
+      <stop offset="100%" stop-color="#12100b"/>
+    </linearGradient>
+    <linearGradient id="a-gem" x1="0.15" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#dda6ff"/>
+      <stop offset="52%" stop-color="#a335ee"/>
+      <stop offset="100%" stop-color="#571496"/>
+    </linearGradient>
+    <radialGradient id="a-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a335ee" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#a335ee" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- plate -->
+  <rect width="512" height="512" rx="112" fill="url(#a-bg)"/>
+  <rect x="9" y="9" width="494" height="494" rx="104" fill="none" stroke="url(#a-gold)" stroke-width="10"/>
+
+  <!-- chat bubble with tail -->
+  <path d="M116 104 H396 A40 40 0 0 1 436 144 V280 A40 40 0 0 1 396 320 H226 L144 396 L160 320 H116 A40 40 0 0 1 76 280 V144 A40 40 0 0 1 116 104 Z"
+        fill="url(#a-bubble)" stroke="url(#a-gold)" stroke-width="11" stroke-linejoin="round"/>
+
+  <!-- item icon frame -->
+  <rect x="112" y="164" width="96" height="96" rx="18" fill="#0d0b08"/>
+  <rect x="112" y="164" width="96" height="96" rx="18" fill="url(#a-glow)"/>
+  <rect x="112" y="164" width="96" height="96" rx="18" fill="none" stroke="#a335ee" stroke-width="5"/>
+
+  <!-- gem -->
+  <path d="M160 174 L196 206 L177 252 L143 252 L124 206 Z" fill="url(#a-gem)"/>
+  <path d="M160 174 L177 205 L160 220 L143 205 Z" fill="#ffffff" opacity="0.3"/>
+
+  <!-- "Plate / Chest / 639 : [item link]" readout lines -->
+  <g>
+    <rect x="230" y="164" width="100" height="20" rx="10" fill="url(#a-gold)"/>
+    <rect x="342" y="164" width="62" height="20" rx="10" fill="#a335ee"/>
+
+    <rect x="230" y="202" width="76" height="20" rx="10" fill="url(#a-gold)" opacity="0.62"/>
+    <rect x="318" y="202" width="86" height="20" rx="10" fill="#a335ee" opacity="0.62"/>
+
+    <rect x="230" y="240" width="116" height="20" rx="10" fill="url(#a-gold)" opacity="0.34"/>
+    <rect x="358" y="240" width="46" height="20" rx="10" fill="#a335ee" opacity="0.34"/>
+  </g>
+</svg>
