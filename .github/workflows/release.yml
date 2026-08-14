@@ -2,11 +2,18 @@ name: Release addon
 
 on:
   push:
-    tags:
-      - "v*.*.*"
+    branches:
+      - main
+    paths:
+      - SimpleLootInfo.lua
+      - SimpleLootInfo.toc
 
 permissions:
   contents: write
+
+concurrency:
+  group: addon-release
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -14,39 +21,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out tagged source
+      - name: Check out source
         uses: actions/checkout@v6
 
       - name: Validate version
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
 
-          tag="${GITHUB_REF_NAME}"
-          if [[ ! "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Tag must use the vX.Y.Z format; received '${tag}'." >&2
-            exit 1
-          fi
+          version="$(sed -n 's/^## Version:[[:space:]]*//p' SimpleLootInfo.toc | tr -d '\r' | head -n 1)"
 
-          version="${tag#v}"
-          toc_version="$(sed -n 's/^## Version:[[:space:]]*//p' SimpleLootInfo.toc | tr -d '\r' | head -n 1)"
-
-          if [[ -z "${toc_version}" ]]; then
+          if [[ -z "${version}" ]]; then
             echo "SimpleLootInfo.toc does not contain a Version field." >&2
             exit 1
           fi
 
-          if [[ "${toc_version}" != "${version}" ]]; then
-            echo "Tag version ${version} does not match TOC version ${toc_version}." >&2
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "TOC version must use the X.Y.Z format; received '${version}'." >&2
             exit 1
           fi
+
+          tag="v${version}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1 \
+            || gh release view "${tag}" >/dev/null 2>&1; then
+            echo "Tag or release ${tag} already exists. Bump the TOC version before merging addon changes." >&2
+            exit 1
+          fi
+
+          echo "RELEASE_TAG=${tag}" >> "${GITHUB_ENV}"
 
       - name: Build release archive
         shell: bash
         run: |
           set -euo pipefail
 
-          archive="SimpleLootInfo-${GITHUB_REF_NAME}.zip"
+          archive="SimpleLootInfo-${RELEASE_TAG}.zip"
           mkdir -p dist/SimpleLootInfo
           install -m 0644 SimpleLootInfo.lua SimpleLootInfo.toc dist/SimpleLootInfo/
           (cd dist && zip -r "../${archive}" SimpleLootInfo)
@@ -59,7 +70,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" "${ARCHIVE_NAME}" \
-            --verify-tag \
+          gh release create "${RELEASE_TAG}" "${ARCHIVE_NAME}" \
+            --target "${GITHUB_SHA}" \
             --generate-notes \
-            --title "SimpleLootInfo ${GITHUB_REF_NAME}"
+            --title "SimpleLootInfo ${RELEASE_TAG}"

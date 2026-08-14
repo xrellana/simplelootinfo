@@ -106,17 +106,15 @@ asynchronously when the client has not cached it yet.
 
 ## Publishing a release
 
-1. Update `## Version` in `SimpleLootInfo.toc` and merge the change into `main`.
-2. Create and push a matching semantic version tag:
+Update `## Version` in `SimpleLootInfo.toc` whenever addon code changes. After a commit
+that modifies `SimpleLootInfo.lua` or `SimpleLootInfo.toc` is merged into `main`, the
+release workflow automatically creates the matching tag and GitHub Release.
 
-   ```bash
-   git tag v1.2.0
-   git push origin v1.2.0
-   ```
-
-The release workflow verifies that the tag matches the TOC version, builds
-`SimpleLootInfo-v1.2.0.zip` with the required `SimpleLootInfo/` directory structure,
-and publishes it as a GitHub Release with automatically generated release notes.
+For example, TOC version `1.2.0` produces `SimpleLootInfo-v1.2.0.zip` with the required
+`SimpleLootInfo/` directory structure and automatically generated release notes. If
+release `v1.2.0` already exists, the workflow stops and requires another version bump.
+Changes limited to documentation, tests or repository configuration do not publish a
+new addon version.
 
 ## Known limitations
 
