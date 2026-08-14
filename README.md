@@ -104,6 +104,20 @@ Built against Interface `120100` (Retail). It uses `C_Item.GetItemInfoInstant` a
 `C_Item.GetDetailedItemLevelInfo` with a `GetItemInfo` fallback, and requests item data
 asynchronously when the client has not cached it yet.
 
+## Publishing a release
+
+1. Update `## Version` in `SimpleLootInfo.toc` and merge the change into `main`.
+2. Create and push a matching semantic version tag:
+
+   ```bash
+   git tag v1.2.0
+   git push origin v1.2.0
+   ```
+
+The release workflow verifies that the tag matches the TOC version, builds
+`SimpleLootInfo-v1.2.0.zip` with the required `SimpleLootInfo/` directory structure,
+and publishes it as a GitHub Release with automatically generated release notes.
+
 ## Known limitations
 
 - The very first time you see an item in a session, the client may not have its data
