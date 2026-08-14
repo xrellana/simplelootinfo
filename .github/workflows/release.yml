@@ -1,0 +1,76 @@
+name: Release addon
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - SimpleLootInfo.lua
+      - SimpleLootInfo.toc
+
+permissions:
+  contents: write
+
+concurrency:
+  group: addon-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Package and publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Validate version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="$(sed -n 's/^## Version:[[:space:]]*//p' SimpleLootInfo.toc | tr -d '\r' | head -n 1)"
+
+          if [[ -z "${version}" ]]; then
+            echo "SimpleLootInfo.toc does not contain a Version field." >&2
+            exit 1
+          fi
+
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "TOC version must use the X.Y.Z format; received '${version}'." >&2
+            exit 1
+          fi
+
+          tag="v${version}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1 \
+            || gh release view "${tag}" >/dev/null 2>&1; then
+            echo "Tag or release ${tag} already exists. Bump the TOC version before merging addon changes." >&2
+            exit 1
+          fi
+
+          echo "RELEASE_TAG=${tag}" >> "${GITHUB_ENV}"
+
+      - name: Build release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          archive="SimpleLootInfo-${RELEASE_TAG}.zip"
+          mkdir -p dist/SimpleLootInfo
+          install -m 0644 SimpleLootInfo.lua SimpleLootInfo.toc dist/SimpleLootInfo/
+          (cd dist && zip -r "../${archive}" SimpleLootInfo)
+
+          echo "Archive contents:"
+          unzip -Z1 "${archive}"
+          echo "ARCHIVE_NAME=${archive}" >> "${GITHUB_ENV}"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${RELEASE_TAG}" "${ARCHIVE_NAME}" \
+            --target "${GITHUB_SHA}" \
+            --generate-notes \
+            --title "SimpleLootInfo ${RELEASE_TAG}"

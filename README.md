@@ -104,6 +104,18 @@ Built against Interface `120100` (Retail). It uses `C_Item.GetItemInfoInstant` a
 `C_Item.GetDetailedItemLevelInfo` with a `GetItemInfo` fallback, and requests item data
 asynchronously when the client has not cached it yet.
 
+## Publishing a release
+
+Update `## Version` in `SimpleLootInfo.toc` whenever addon code changes. After a commit
+that modifies `SimpleLootInfo.lua` or `SimpleLootInfo.toc` is merged into `main`, the
+release workflow automatically creates the matching tag and GitHub Release.
+
+For example, TOC version `1.2.0` produces `SimpleLootInfo-v1.2.0.zip` with the required
+`SimpleLootInfo/` directory structure and automatically generated release notes. If
+release `v1.2.0` already exists, the workflow stops and requires another version bump.
+Changes limited to documentation, tests or repository configuration do not publish a
+new addon version.
+
 ## Known limitations
 
 - The very first time you see an item in a session, the client may not have its data
