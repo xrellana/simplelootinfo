@@ -3,6 +3,7 @@
 ## Title: SimpleLootInfo
 ## Notes: Show item type, equipment slot and item level in front of gear links in chat.
 ## Author: Zane
-## Version: 1.0
+## Version: 1.1.0
+## SavedVariables: SimpleLootInfoDB
 
 SimpleLootInfo.lua

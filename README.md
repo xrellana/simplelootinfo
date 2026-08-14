@@ -5,7 +5,7 @@
 <h1 align="center">Simple Loot Info</h1>
 
 <p align="center">
-  Adds armor type, equipment slot and item level in front of every gear link in chat.
+  Adds configurable item type, equipment slot, item level and icons to gear links in chat.
 </p>
 
 <p align="center">
@@ -42,10 +42,13 @@ never get a broken prefix.
 - Works on loot messages **and** on links other players post in chat.
 - Only touches weapons and armor. Consumables, quest items, crafting mats and
   everything else are left untouched.
+- Lets you independently show or hide item type, equipment slot, item level and an
+  inline item icon.
+- Loot messages and ordinary chat can be enabled separately.
+- Settings persist across sessions, with commands to inspect or reset them.
 - Localized slot names — the addon reads them from the game client, so `Legs` shows up
   as `腿部` on a Chinese client, `Beine` on a German one, and so on.
-- Pure chat filter. No frames, no taint, no saved variables, no memory footprint worth
-  measuring.
+- Pure chat filter. No UI frames, no taint and only a tiny saved settings table.
 - Registers its filters ~2 seconds after login on purpose, so it layers cleanly on top
   of other chat and item-link addons instead of fighting them.
 
@@ -80,7 +83,16 @@ Then `/reload` or restart the client.
 | Command | Description |
 | --- | --- |
 | `/sli` | Show the command list |
-| `/sli debug` | Toggle debug output (prints why a link was or was not modified) |
+| `/sli on` / `/sli off` | Enable or disable all enhancements |
+| `/sli type [on\|off]` | Toggle item type |
+| `/sli slot [on\|off]` | Toggle equipment slot |
+| `/sli ilvl [on\|off]` | Toggle item level |
+| `/sli icon [on\|off]` | Toggle a 14px inline item icon |
+| `/sli loot [on\|off]` | Toggle enhancements in loot messages |
+| `/sli chat [on\|off]` | Toggle enhancements in ordinary chat |
+| `/sli status` | Show the current configuration |
+| `/sli reset` | Restore the default configuration |
+| `/sli debug [on\|off]` | Toggle debug output for the current session |
 
 Debug mode is the first thing to try if a link is not being decorated — it will tell you
 whether the item was skipped as non-equipment or whether the item data had not been
@@ -88,7 +100,7 @@ cached yet.
 
 ## Compatibility
 
-Built against Interface `120000` (Retail). It uses `C_Item.GetItemInfoInstant` and
+Built against Interface `120100` (Retail). It uses `C_Item.GetItemInfoInstant` and
 `C_Item.GetDetailedItemLevelInfo` with a `GetItemInfo` fallback, and requests item data
 asynchronously when the client has not cached it yet.
 

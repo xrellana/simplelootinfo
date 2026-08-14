@@ -1,11 +1,40 @@
 local ADDON_NAME = "Simple Loot Info"
 local DEBUG = false
 local registered = false
+local settings
+
+local DEFAULTS = {
+    enabled = true,
+    showType = true,
+    showSlot = true,
+    showItemLevel = true,
+    showIcon = false,
+    enhanceLoot = true,
+    enhanceChat = true,
+}
+
+local function PrintMessage(message)
+    print("|cff00ff00" .. ADDON_NAME .. ":|r " .. message)
+end
 
 local function DebugPrint(...)
     if DEBUG then
-        print("|cff00ff00Simple Loot Info Debug:|r", ...)
+        print("|cff00ff00" .. ADDON_NAME .. " Debug:|r", ...)
     end
+end
+
+local function InitializeSettings(reset)
+    if reset or type(SimpleLootInfoDB) ~= "table" then
+        SimpleLootInfoDB = {}
+    end
+
+    for key, value in pairs(DEFAULTS) do
+        if SimpleLootInfoDB[key] == nil then
+            SimpleLootInfoDB[key] = value
+        end
+    end
+
+    settings = SimpleLootInfoDB
 end
 
 local function IsValidEquipment(classID, itemEquipLoc)
@@ -53,11 +82,11 @@ local function GetEquipmentSlotName(itemEquipLoc)
 end
 
 local function BuildEnhancedItemLink(itemLink)
-    if not itemLink then
+    if not itemLink or not settings or not settings.enabled then
         return itemLink
     end
 
-    local itemID, itemType, itemSubType, itemEquipLoc, icon, classID, subClassID =
+    local itemID, itemType, itemSubType, itemEquipLoc, icon, classID =
         C_Item.GetItemInfoInstant(itemLink)
 
     if not itemID then
@@ -73,18 +102,33 @@ local function BuildEnhancedItemLink(itemLink)
     local slotName = GetEquipmentSlotName(itemEquipLoc)
     local typeName = itemSubType or itemType or "Equipment"
     local itemLevel = GetItemLevel(itemLink, itemID)
+    local details = {}
+
+    if settings.showType and typeName then
+        table.insert(details, typeName)
+    end
+
+    if settings.showSlot and slotName then
+        table.insert(details, slotName)
+    end
+
+    if settings.showItemLevel and itemLevel then
+        table.insert(details, tostring(itemLevel))
+    end
 
     DebugPrint("Enhanced item:", itemID, typeName or "nil", slotName or "nil", itemLevel or "nil")
 
-    if itemLevel and slotName then
-        return string.format("%s/%s/%s: %s", typeName, slotName, itemLevel, itemLink)
-    elseif slotName then
-        return string.format("%s/%s: %s", typeName, slotName, itemLink)
-    elseif itemLevel then
-        return string.format("%s/%s: %s", typeName, itemLevel, itemLink)
-    else
-        return string.format("%s: %s", typeName, itemLink)
+    local enhancedLink = itemLink
+
+    if #details > 0 then
+        enhancedLink = table.concat(details, "/") .. ": " .. enhancedLink
     end
+
+    if settings.showIcon and icon then
+        enhancedLink = string.format("|T%s:14:14:0:0|t %s", icon, enhancedLink)
+    end
+
+    return enhancedLink
 end
 
 local function EnhanceItemLinks(message)
@@ -111,8 +155,24 @@ local function EnhanceItemLinks(message)
     return enhancedMessage
 end
 
+local function ShouldEnhanceEvent(event)
+    if not settings or not settings.enabled then
+        return false
+    end
+
+    if event == "CHAT_MSG_LOOT" then
+        return settings.enhanceLoot
+    end
+
+    return settings.enhanceChat
+end
+
 local function ChatMessageFilter(self, event, message, ...)
     DebugPrint("Event:", event)
+
+    if not ShouldEnhanceEvent(event) then
+        return false, message, ...
+    end
 
     local enhancedMessage = EnhanceItemLinks(message)
 
@@ -158,34 +218,158 @@ local function RegisterChatFilters()
         ChatFrame_AddMessageEventFilter(eventName, ChatMessageFilter)
     end
 
-    print("|cff00ff00Simple Loot Info filters registered.|r")
+    DebugPrint("Chat filters registered.")
+end
+
+local function StateText(value)
+    if value then
+        return "|cff00ff00on|r"
+    end
+
+    return "|cffff4040off|r"
+end
+
+local function PrintStatus()
+    PrintMessage("status")
+    print("  Addon: " .. StateText(settings.enabled))
+    print(
+        "  Display: type " .. StateText(settings.showType)
+            .. ", slot " .. StateText(settings.showSlot)
+            .. ", item level " .. StateText(settings.showItemLevel)
+            .. ", icon " .. StateText(settings.showIcon)
+    )
+    print(
+        "  Sources: loot " .. StateText(settings.enhanceLoot)
+            .. ", chat " .. StateText(settings.enhanceChat)
+    )
+    print("  Debug: " .. StateText(DEBUG))
+end
+
+local function SetOrToggle(optionName, argument)
+    if argument == "" then
+        settings[optionName] = not settings[optionName]
+        return true
+    end
+
+    if argument == "on" then
+        settings[optionName] = true
+        return true
+    end
+
+    if argument == "off" then
+        settings[optionName] = false
+        return true
+    end
+
+    return false
+end
+
+local function SetOrToggleDebug(argument)
+    if argument == "" then
+        DEBUG = not DEBUG
+        return true
+    end
+
+    if argument == "on" then
+        DEBUG = true
+        return true
+    end
+
+    if argument == "off" then
+        DEBUG = false
+        return true
+    end
+
+    return false
+end
+
+local function PrintHelp()
+    PrintMessage("commands")
+    print("/sli on|off - Enable or disable all enhancements.")
+    print("/sli type [on|off] - Toggle item type.")
+    print("/sli slot [on|off] - Toggle equipment slot.")
+    print("/sli ilvl [on|off] - Toggle item level.")
+    print("/sli icon [on|off] - Toggle the inline item icon.")
+    print("/sli loot [on|off] - Toggle enhancements in loot messages.")
+    print("/sli chat [on|off] - Toggle enhancements in chat messages.")
+    print("/sli status - Show the current settings.")
+    print("/sli reset - Restore the defaults.")
+    print("/sli debug [on|off] - Toggle debug output for this session.")
 end
 
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:SetScript("OnEvent", function()
+    InitializeSettings()
+
     -- Register slightly later to avoid being overwritten by other chat/item-link addons.
     C_Timer.After(2, RegisterChatFilters)
 end)
 
 SLASH_SIMPLELOOTINFO1 = "/sli"
 SlashCmdList["SIMPLELOOTINFO"] = function(msg)
-    msg = msg and msg:lower() or ""
+    if not settings then
+        InitializeSettings()
+    end
 
-    if msg == "debug" then
-        DEBUG = not DEBUG
+    msg = (msg or ""):lower():match("^%s*(.-)%s*$")
 
-        if DEBUG then
-            print("|cff00ff00Simple Loot Info debug enabled.|r")
-        else
-            print("|cff00ff00Simple Loot Info debug disabled.|r")
-        end
+    local command, argument = msg:match("^(%S+)%s*(.-)$")
+    command = command or ""
+    argument = argument or ""
 
+    if command == "on" or command == "enable" then
+        settings.enabled = true
+        PrintMessage("enabled.")
         return
     end
 
-    print("|cff00ff00Simple Loot Info commands:|r")
-    print("/sli debug - Toggle debug mode.")
-end
+    if command == "off" or command == "disable" then
+        settings.enabled = false
+        PrintMessage("disabled.")
+        return
+    end
 
-print("|cff00ff00Simple Loot Info loaded.|r")
+    local optionNames = {
+        type = "showType",
+        slot = "showSlot",
+        ilvl = "showItemLevel",
+        itemlevel = "showItemLevel",
+        icon = "showIcon",
+        loot = "enhanceLoot",
+        chat = "enhanceChat",
+    }
+
+    local optionName = optionNames[command]
+    if optionName then
+        if SetOrToggle(optionName, argument) then
+            PrintMessage(command .. " is now " .. StateText(settings[optionName]) .. ".")
+        else
+            PrintMessage("use 'on' or 'off' after /sli " .. command .. ".")
+        end
+        return
+    end
+
+    if command == "debug" then
+        if SetOrToggleDebug(argument) then
+            PrintMessage("debug is now " .. StateText(DEBUG) .. ".")
+        else
+            PrintMessage("use 'on' or 'off' after /sli debug.")
+        end
+        return
+    end
+
+    if command == "status" then
+        PrintStatus()
+        return
+    end
+
+    if command == "reset" then
+        InitializeSettings(true)
+        PrintMessage("settings reset to defaults.")
+        PrintStatus()
+        return
+    end
+
+    PrintHelp()
+end
