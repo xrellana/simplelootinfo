@@ -9,6 +9,7 @@ local DEFAULTS = {
     showSlot = true,
     showItemLevel = true,
     showSecondary = true,
+    showTertiary = true,
     showIcon = false,
     enhanceLoot = true,
     enhanceChat = true,
@@ -20,6 +21,15 @@ local SECONDARY_STATS = {
     { key = "ITEM_MOD_MASTERY_RATING_SHORT", fallbackName = "Mastery" },
     { key = "ITEM_MOD_VERSATILITY", fallbackName = "Versatility" },
 }
+
+local TERTIARY_STATS = {
+    { key = "ITEM_MOD_CR_LIFESTEAL_SHORT", fallbackName = "Leech" },
+    { key = "ITEM_MOD_CR_AVOIDANCE_SHORT", fallbackName = "Avoidance" },
+    { key = "ITEM_MOD_CR_SPEED_SHORT", fallbackName = "Speed" },
+    { key = "ITEM_MOD_CR_STURDINESS_SHORT", fallbackName = "Indestructible", hideValue = true },
+}
+
+local TERTIARY_COLOR = "|cffffd100"
 
 local function PrintMessage(message)
     print("|cff00ff00" .. ADDON_NAME .. ":|r " .. message)
@@ -89,7 +99,7 @@ local function GetEquipmentSlotName(itemEquipLoc)
     return _G[itemEquipLoc] or itemEquipLoc
 end
 
-local function GetSecondaryStatText(itemLink, itemID)
+local function GetItemStats(itemLink, itemID)
     if not C_Item or not C_Item.GetItemStats then
         return nil
     end
@@ -104,13 +114,22 @@ local function GetSecondaryStatText(itemLink, itemID)
         return nil
     end
 
-    local secondaryStats = {}
+    return itemStats
+end
 
-    for index, statInfo in ipairs(SECONDARY_STATS) do
+local function GetStatText(itemStats, statDefinitions)
+    if not itemStats then
+        return nil
+    end
+
+    local matchingStats = {}
+
+    for index, statInfo in ipairs(statDefinitions) do
         local value = itemStats[statInfo.key]
 
         if type(value) == "number" and value > 0 then
-            table.insert(secondaryStats, {
+            table.insert(matchingStats, {
+                hideValue = statInfo.hideValue,
                 name = _G[statInfo.key] or statInfo.fallbackName,
                 order = index,
                 value = value,
@@ -118,7 +137,7 @@ local function GetSecondaryStatText(itemLink, itemID)
         end
     end
 
-    table.sort(secondaryStats, function(left, right)
+    table.sort(matchingStats, function(left, right)
         if left.value == right.value then
             return left.order < right.order
         end
@@ -128,8 +147,12 @@ local function GetSecondaryStatText(itemLink, itemID)
 
     local parts = {}
 
-    for _, statInfo in ipairs(secondaryStats) do
-        table.insert(parts, statInfo.name .. " " .. tostring(statInfo.value))
+    for _, statInfo in ipairs(matchingStats) do
+        if statInfo.hideValue then
+            table.insert(parts, statInfo.name)
+        else
+            table.insert(parts, statInfo.name .. " " .. tostring(statInfo.value))
+        end
     end
 
     if #parts == 0 then
@@ -160,11 +183,21 @@ local function BuildEnhancedItemLink(itemLink)
     local slotName = GetEquipmentSlotName(itemEquipLoc)
     local typeName = itemSubType or itemType or "Equipment"
     local itemLevel = GetItemLevel(itemLink, itemID)
+    local itemStats
     local secondaryStatText
+    local tertiaryStatText
     local details = {}
 
+    if settings.showSecondary or settings.showTertiary then
+        itemStats = GetItemStats(itemLink, itemID)
+    end
+
     if settings.showSecondary then
-        secondaryStatText = GetSecondaryStatText(itemLink, itemID)
+        secondaryStatText = GetStatText(itemStats, SECONDARY_STATS)
+    end
+
+    if settings.showTertiary then
+        tertiaryStatText = GetStatText(itemStats, TERTIARY_STATS)
     end
 
     if settings.showType and typeName then
@@ -193,6 +226,10 @@ local function BuildEnhancedItemLink(itemLink)
 
     if secondaryStatText then
         enhancedLink = enhancedLink .. " (" .. secondaryStatText .. ")"
+    end
+
+    if tertiaryStatText then
+        enhancedLink = enhancedLink .. " " .. TERTIARY_COLOR .. "(" .. tertiaryStatText .. ")|r"
     end
 
     return enhancedLink
@@ -304,6 +341,7 @@ local function PrintStatus()
             .. ", slot " .. StateText(settings.showSlot)
             .. ", item level " .. StateText(settings.showItemLevel)
             .. ", secondary stats " .. StateText(settings.showSecondary)
+            .. ", tertiary stats " .. StateText(settings.showTertiary)
             .. ", icon " .. StateText(settings.showIcon)
     )
     print(
@@ -358,6 +396,7 @@ local function PrintHelp()
     print("/sli slot [on|off] - Toggle equipment slot.")
     print("/sli ilvl [on|off] - Toggle item level.")
     print("/sli secondary [on|off] - Toggle secondary stats.")
+    print("/sli tertiary [on|off] - Toggle highlighted tertiary stats.")
     print("/sli icon [on|off] - Toggle the inline item icon.")
     print("/sli loot [on|off] - Toggle enhancements in loot messages.")
     print("/sli chat [on|off] - Toggle enhancements in chat messages.")
@@ -406,6 +445,7 @@ SlashCmdList["SIMPLELOOTINFO"] = function(msg)
         itemlevel = "showItemLevel",
         secondary = "showSecondary",
         stats = "showSecondary",
+        tertiary = "showTertiary",
         icon = "showIcon",
         loot = "enhanceLoot",
         chat = "enhanceChat",

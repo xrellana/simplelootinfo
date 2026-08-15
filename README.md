@@ -5,7 +5,7 @@
 <h1 align="center">Simple Loot Info</h1>
 
 <p align="center">
-  Adds configurable item type, equipment slot, item level, secondary stats and icons to gear links in chat.
+  Adds configurable item type, equipment slot, item level, secondary/tertiary stats and icons to gear links in chat.
 </p>
 
 <p align="center">
@@ -29,7 +29,7 @@ You receive loot: [Sabatons of the Silent Vigil]
 **After**
 
 ```
-You receive loot: Plate/Legs/639: [Sabatons of the Silent Vigil] (Haste 120/Critical Strike 95)
+You receive loot: Plate/Legs/639: [Sabatons of the Silent Vigil] (Haste 120/Critical Strike 95) (Leech 48)
 ```
 
 The format is `Type/Slot/ItemLevel: [link] (Secondary Stat/Secondary Stat)`, where *Type* is the item's subtype — the
@@ -38,15 +38,21 @@ armor class for armor (`Plate`, `Leather`, …) and the weapon class for weapons
 client's localized stat names. Whatever the client cannot resolve yet is simply left
 out, so you never get a broken decoration.
 
+Rare tertiary stats are placed in a separate, gold-highlighted group after the normal
+secondary stats. Leech, Avoidance and Speed include their rating; Indestructible is
+shown without the API's internal boolean value.
+
 ## Features
 
 - Works on loot messages **and** on links other players post in chat.
 - Only touches weapons and armor. Consumables, quest items, crafting mats and
   everything else are left untouched.
 - Shows Critical Strike, Haste, Mastery and Versatility after the link, sorted from
-  highest to lowest. Tertiary stats such as Leech are intentionally excluded.
+  highest to lowest in the regular secondary-stat group.
+- Detects Leech, Avoidance, Speed and Indestructible separately and highlights them in
+  gold so rare tertiary rolls stand out immediately.
 - Lets you independently show or hide item type, equipment slot, item level, secondary
-  stats and an inline item icon.
+  stats, tertiary stats and an inline item icon.
 - Loot messages and ordinary chat can be enabled separately.
 - Settings persist across sessions, with commands to inspect or reset them.
 - Localized slot names — the addon reads them from the game client, so `Legs` shows up
@@ -91,6 +97,7 @@ Then `/reload` or restart the client.
 | `/sli slot [on\|off]` | Toggle equipment slot |
 | `/sli ilvl [on\|off]` | Toggle item level |
 | `/sli secondary [on\|off]` | Toggle secondary stats after the link (`stats` is an alias) |
+| `/sli tertiary [on\|off]` | Toggle highlighted tertiary stats after the secondary stats |
 | `/sli icon [on\|off]` | Toggle a 14px inline item icon |
 | `/sli loot [on\|off]` | Toggle enhancements in loot messages |
 | `/sli chat [on\|off]` | Toggle enhancements in ordinary chat |
@@ -115,9 +122,9 @@ Update `## Version` in `SimpleLootInfo.toc` whenever addon code changes. After a
 that modifies `SimpleLootInfo.lua` or `SimpleLootInfo.toc` is merged into `main`, the
 release workflow automatically creates the matching tag and GitHub Release.
 
-For example, TOC version `1.2.0` produces `SimpleLootInfo-v1.2.0.zip` with the required
+For example, TOC version `1.3.0` produces `SimpleLootInfo-v1.3.0.zip` with the required
 `SimpleLootInfo/` directory structure and automatically generated release notes. If
-release `v1.2.0` already exists, the workflow stops and requires another version bump.
+release `v1.3.0` already exists, the workflow stops and requires another version bump.
 Changes limited to documentation, tests or repository configuration do not publish a
 new addon version.
 
