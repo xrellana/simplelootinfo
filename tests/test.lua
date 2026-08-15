@@ -23,6 +23,10 @@ print = function() end
 SlashCmdList = {}
 SimpleLootInfoDB = nil
 INVTYPE_WEAPON = "One-Hand"
+ITEM_MOD_CRIT_RATING_SHORT = "Critical Strike"
+ITEM_MOD_HASTE_RATING_SHORT = "Haste"
+ITEM_MOD_MASTERY_RATING_SHORT = "Mastery"
+ITEM_MOD_VERSATILITY = "Versatility"
 
 C_Item = {
     GetItemInfoInstant = function(itemLink)
@@ -34,6 +38,17 @@ C_Item = {
     end,
     GetDetailedItemLevelInfo = function()
         return 639
+    end,
+    GetItemStats = function(itemLink)
+        if itemLink:find("Hitem:999", 1, true) then
+            return nil
+        end
+
+        return {
+            ITEM_MOD_CRIT_RATING_SHORT = 95,
+            ITEM_MOD_HASTE_RATING_SHORT = 120,
+            ITEM_MOD_MASTERY_RATING_SHORT = 80,
+        }
     end,
     RequestLoadItemDataByID = function() end,
 }
@@ -80,9 +95,9 @@ local function Filter(eventName, message)
 end
 
 AssertEqual(
-    "Loot: Sword/One-Hand/639: " .. gearLink,
+    "Loot: Sword/One-Hand/639: " .. gearLink .. " (Haste 120/Critical Strike 95/Mastery 80)",
     Filter("CHAT_MSG_LOOT", "Loot: " .. gearLink),
-    "Default settings should preserve the original decoration format."
+    "Default settings should append secondary stats in descending order."
 )
 
 AssertEqual(
@@ -93,7 +108,8 @@ AssertEqual(
 
 local twoLinks = Filter("CHAT_MSG_LOOT", gearLink .. " and " .. gearLink)
 AssertEqual(
-    "Sword/One-Hand/639: " .. gearLink .. " and Sword/One-Hand/639: " .. gearLink,
+    "Sword/One-Hand/639: " .. gearLink .. " (Haste 120/Critical Strike 95/Mastery 80)"
+        .. " and Sword/One-Hand/639: " .. gearLink .. " (Haste 120/Critical Strike 95/Mastery 80)",
     twoLinks,
     "Every gear link in a message should be enhanced."
 )
@@ -105,6 +121,15 @@ AssertContains(
     "|T135771:14:14:0:0|t Sword/One-Hand/639:",
     "The icon option should prepend the item texture."
 )
+
+SlashCmdList.SIMPLELOOTINFO("secondary off")
+AssertEqual(false, SimpleLootInfoDB.showSecondary, "Secondary stat preference should be persisted.")
+AssertEqual(
+    "Loot: |T135771:14:14:0:0|t Sword/One-Hand/639: " .. gearLink,
+    Filter("CHAT_MSG_LOOT", "Loot: " .. gearLink),
+    "Secondary stats should be independently disableable."
+)
+SlashCmdList.SIMPLELOOTINFO("stats on")
 
 SlashCmdList.SIMPLELOOTINFO("type off")
 SlashCmdList.SIMPLELOOTINFO("slot off")
@@ -138,6 +163,7 @@ AssertEqual(true, SimpleLootInfoDB.enabled, "Reset should enable the addon.")
 AssertEqual(true, SimpleLootInfoDB.showType, "Reset should restore item type.")
 AssertEqual(true, SimpleLootInfoDB.showSlot, "Reset should restore equipment slot.")
 AssertEqual(true, SimpleLootInfoDB.showItemLevel, "Reset should restore item level.")
+AssertEqual(true, SimpleLootInfoDB.showSecondary, "Reset should restore secondary stats.")
 AssertEqual(false, SimpleLootInfoDB.showIcon, "Reset should hide the optional icon.")
 AssertEqual(true, SimpleLootInfoDB.enhanceLoot, "Reset should restore loot enhancements.")
 AssertEqual(true, SimpleLootInfoDB.enhanceChat, "Reset should restore chat enhancements.")

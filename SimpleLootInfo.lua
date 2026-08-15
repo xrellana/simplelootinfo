@@ -8,9 +8,17 @@ local DEFAULTS = {
     showType = true,
     showSlot = true,
     showItemLevel = true,
+    showSecondary = true,
     showIcon = false,
     enhanceLoot = true,
     enhanceChat = true,
+}
+
+local SECONDARY_STATS = {
+    { key = "ITEM_MOD_CRIT_RATING_SHORT", fallbackName = "Critical Strike" },
+    { key = "ITEM_MOD_HASTE_RATING_SHORT", fallbackName = "Haste" },
+    { key = "ITEM_MOD_MASTERY_RATING_SHORT", fallbackName = "Mastery" },
+    { key = "ITEM_MOD_VERSATILITY", fallbackName = "Versatility" },
 }
 
 local function PrintMessage(message)
@@ -81,6 +89,56 @@ local function GetEquipmentSlotName(itemEquipLoc)
     return _G[itemEquipLoc] or itemEquipLoc
 end
 
+local function GetSecondaryStatText(itemLink, itemID)
+    if not C_Item or not C_Item.GetItemStats then
+        return nil
+    end
+
+    local itemStats = C_Item.GetItemStats(itemLink)
+
+    if not itemStats then
+        if C_Item.RequestLoadItemDataByID and itemID then
+            C_Item.RequestLoadItemDataByID(itemID)
+        end
+
+        return nil
+    end
+
+    local secondaryStats = {}
+
+    for index, statInfo in ipairs(SECONDARY_STATS) do
+        local value = itemStats[statInfo.key]
+
+        if type(value) == "number" and value > 0 then
+            table.insert(secondaryStats, {
+                name = _G[statInfo.key] or statInfo.fallbackName,
+                order = index,
+                value = value,
+            })
+        end
+    end
+
+    table.sort(secondaryStats, function(left, right)
+        if left.value == right.value then
+            return left.order < right.order
+        end
+
+        return left.value > right.value
+    end)
+
+    local parts = {}
+
+    for _, statInfo in ipairs(secondaryStats) do
+        table.insert(parts, statInfo.name .. " " .. tostring(statInfo.value))
+    end
+
+    if #parts == 0 then
+        return nil
+    end
+
+    return table.concat(parts, "/")
+end
+
 local function BuildEnhancedItemLink(itemLink)
     if not itemLink or not settings or not settings.enabled then
         return itemLink
@@ -102,7 +160,12 @@ local function BuildEnhancedItemLink(itemLink)
     local slotName = GetEquipmentSlotName(itemEquipLoc)
     local typeName = itemSubType or itemType or "Equipment"
     local itemLevel = GetItemLevel(itemLink, itemID)
+    local secondaryStatText
     local details = {}
+
+    if settings.showSecondary then
+        secondaryStatText = GetSecondaryStatText(itemLink, itemID)
+    end
 
     if settings.showType and typeName then
         table.insert(details, typeName)
@@ -126,6 +189,10 @@ local function BuildEnhancedItemLink(itemLink)
 
     if settings.showIcon and icon then
         enhancedLink = string.format("|T%s:14:14:0:0|t %s", icon, enhancedLink)
+    end
+
+    if secondaryStatText then
+        enhancedLink = enhancedLink .. " (" .. secondaryStatText .. ")"
     end
 
     return enhancedLink
@@ -236,6 +303,7 @@ local function PrintStatus()
         "  Display: type " .. StateText(settings.showType)
             .. ", slot " .. StateText(settings.showSlot)
             .. ", item level " .. StateText(settings.showItemLevel)
+            .. ", secondary stats " .. StateText(settings.showSecondary)
             .. ", icon " .. StateText(settings.showIcon)
     )
     print(
@@ -289,6 +357,7 @@ local function PrintHelp()
     print("/sli type [on|off] - Toggle item type.")
     print("/sli slot [on|off] - Toggle equipment slot.")
     print("/sli ilvl [on|off] - Toggle item level.")
+    print("/sli secondary [on|off] - Toggle secondary stats.")
     print("/sli icon [on|off] - Toggle the inline item icon.")
     print("/sli loot [on|off] - Toggle enhancements in loot messages.")
     print("/sli chat [on|off] - Toggle enhancements in chat messages.")
@@ -335,6 +404,8 @@ SlashCmdList["SIMPLELOOTINFO"] = function(msg)
         slot = "showSlot",
         ilvl = "showItemLevel",
         itemlevel = "showItemLevel",
+        secondary = "showSecondary",
+        stats = "showSecondary",
         icon = "showIcon",
         loot = "enhanceLoot",
         chat = "enhanceChat",

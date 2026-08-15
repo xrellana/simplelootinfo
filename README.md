@@ -5,7 +5,7 @@
 <h1 align="center">Simple Loot Info</h1>
 
 <p align="center">
-  Adds configurable item type, equipment slot, item level and icons to gear links in chat.
+  Adds configurable item type, equipment slot, item level, secondary stats and icons to gear links in chat.
 </p>
 
 <p align="center">
@@ -29,21 +29,24 @@ You receive loot: [Sabatons of the Silent Vigil]
 **After**
 
 ```
-You receive loot: Plate/Legs/639: [Sabatons of the Silent Vigil]
+You receive loot: Plate/Legs/639: [Sabatons of the Silent Vigil] (Haste 120/Critical Strike 95)
 ```
 
-The format is `Type/Slot/ItemLevel: [link]`, where *Type* is the item's subtype — the
+The format is `Type/Slot/ItemLevel: [link] (Secondary Stat/Secondary Stat)`, where *Type* is the item's subtype — the
 armor class for armor (`Plate`, `Leather`, …) and the weapon class for weapons
-(`Sword`, `Staff`, …). Whatever the client cannot resolve yet is simply left out, so you
-never get a broken prefix.
+(`Sword`, `Staff`, …). Secondary stats are sorted from highest to lowest and use the
+client's localized stat names. Whatever the client cannot resolve yet is simply left
+out, so you never get a broken decoration.
 
 ## Features
 
 - Works on loot messages **and** on links other players post in chat.
 - Only touches weapons and armor. Consumables, quest items, crafting mats and
   everything else are left untouched.
-- Lets you independently show or hide item type, equipment slot, item level and an
-  inline item icon.
+- Shows Critical Strike, Haste, Mastery and Versatility after the link, sorted from
+  highest to lowest. Tertiary stats such as Leech are intentionally excluded.
+- Lets you independently show or hide item type, equipment slot, item level, secondary
+  stats and an inline item icon.
 - Loot messages and ordinary chat can be enabled separately.
 - Settings persist across sessions, with commands to inspect or reset them.
 - Localized slot names — the addon reads them from the game client, so `Legs` shows up
@@ -87,6 +90,7 @@ Then `/reload` or restart the client.
 | `/sli type [on\|off]` | Toggle item type |
 | `/sli slot [on\|off]` | Toggle equipment slot |
 | `/sli ilvl [on\|off]` | Toggle item level |
+| `/sli secondary [on\|off]` | Toggle secondary stats after the link (`stats` is an alias) |
 | `/sli icon [on\|off]` | Toggle a 14px inline item icon |
 | `/sli loot [on\|off]` | Toggle enhancements in loot messages |
 | `/sli chat [on\|off]` | Toggle enhancements in ordinary chat |
@@ -100,9 +104,10 @@ cached yet.
 
 ## Compatibility
 
-Built against Interface `120100` (Retail). It uses `C_Item.GetItemInfoInstant` and
-`C_Item.GetDetailedItemLevelInfo` with a `GetItemInfo` fallback, and requests item data
-asynchronously when the client has not cached it yet.
+Built against Interface `120100` (Retail). It uses `C_Item.GetItemInfoInstant`,
+`C_Item.GetDetailedItemLevelInfo` and `C_Item.GetItemStats`, with a `GetItemInfo`
+fallback for item level, and requests item data asynchronously when the client has not
+cached it yet.
 
 ## Publishing a release
 
