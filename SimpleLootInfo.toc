@@ -3,7 +3,7 @@
 ## Title: SimpleLootInfo
 ## Notes: Show item type, equipment slot, item level and secondary/tertiary stats on gear links, plus loot suitability and item-level comparisons.
 ## Author: Zane
-## Version: 1.4.0
+## Version: 1.4.1
 ## SavedVariables: SimpleLootInfoDB
 
 SimpleLootInfo.lua

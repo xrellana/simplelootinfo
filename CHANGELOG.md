@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1
+
+### Changed
+
+- Split the addon implementation into focused modules without changing user-facing behavior or saved settings.
+- Updated the test loader, release packaging and installation documentation for the modular file layout.
+
 ## 1.4.0
 
 ### Added
