@@ -19,10 +19,20 @@ local function AssertContains(haystack, needle, description)
     end
 end
 
+local function AssertNotContains(haystack, needle, description)
+    if haystack:find(needle, 1, true) then
+        error(string.format("%s\nunexpected: %s\nin:         %s", description, needle, haystack))
+    end
+end
+
 print = function() end
 SlashCmdList = {}
 SimpleLootInfoDB = nil
 INVTYPE_WEAPON = "One-Hand"
+INVTYPE_2HWEAPON = "Two-Hand"
+INVTYPE_HEAD = "Head"
+INVTYPE_NECK = "Neck"
+INVTYPE_FINGER = "Finger"
 ITEM_MOD_CRIT_RATING_SHORT = "Critical Strike"
 ITEM_MOD_HASTE_RATING_SHORT = "Haste"
 ITEM_MOD_MASTERY_RATING_SHORT = "Mastery"
@@ -31,17 +41,108 @@ ITEM_MOD_CR_LIFESTEAL_SHORT = "Leech"
 ITEM_MOD_CR_AVOIDANCE_SHORT = "Avoidance"
 ITEM_MOD_CR_SPEED_SHORT = "Speed"
 ITEM_MOD_CR_STURDINESS_SHORT = "Indestructible"
+ITEM_MOD_STRENGTH_SHORT = "Strength"
+ITEM_MOD_AGILITY_SHORT = "Agility"
+ITEM_MOD_INTELLECT_SHORT = "Intellect"
+
+local function GetItemIDFromLink(itemLink)
+    return tonumber(itemLink:match("Hitem:(%d+)"))
+end
+
+local itemInfo = {
+    [888] = { "Weapon", "Sword", "INVTYPE_WEAPON", 135771, 2, 7 },
+    [1001] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
+    [1002] = { "Armor", "Leather", "INVTYPE_HEAD", 133071, 4, 2 },
+    [1003] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
+    [1004] = { "Armor", "Miscellaneous", "INVTYPE_FINGER", 133345, 4, 0 },
+    [1005] = { "Armor", "Miscellaneous", "INVTYPE_FINGER", 133345, 4, 0 },
+    [1006] = { "Armor", "Miscellaneous", "INVTYPE_FINGER", 133345, 4, 0 },
+    [1007] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
+    [1008] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
+    [1009] = { "Armor", "Miscellaneous", "INVTYPE_NECK", 133296, 4, 0 },
+    [1010] = { "Weapon", "Two-Handed Sword", "INVTYPE_2HWEAPON", 135349, 2, 8 },
+    [5001] = { "Weapon", "Sword", "INVTYPE_WEAPON", 135771, 2, 7 },
+    [5101] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
+    [5201] = { "Armor", "Miscellaneous", "INVTYPE_FINGER", 133345, 4, 0 },
+    [5202] = { "Armor", "Miscellaneous", "INVTYPE_FINGER", 133345, 4, 0 },
+    [19019] = { "Weapon", "Sword", "INVTYPE_WEAPON", 135771, 2, 7 },
+}
+
+local itemLevels = {
+    [888] = 639,
+    [1001] = 639,
+    [1002] = 639,
+    [1003] = 639,
+    [1004] = 630,
+    [1005] = 625,
+    [1006] = 620,
+    [1008] = 639,
+    [1009] = 639,
+    [1010] = 650,
+    [5001] = 631,
+    [5101] = 630,
+    [5201] = 625,
+    [5202] = 635,
+    [5301] = 630,
+    [19019] = 639,
+}
+
+local equippedLinks = {
+    [1] = "|cffa335ee|Hitem:5101:::::::::::::::|h[Equipped Helm]|h|r",
+    [11] = "|cffa335ee|Hitem:5201:::::::::::::::|h[Lower Ring]|h|r",
+    [12] = "|cffa335ee|Hitem:5202:::::::::::::::|h[Higher Ring]|h|r",
+    [16] = "|cffa335ee|Hitem:5001:::::::::::::::|h[Equipped Sword]|h|r",
+}
+
+GetLocale = function()
+    return "enUS"
+end
+
+UnitClass = function()
+    return "Warrior", "WARRIOR", 1
+end
+
+C_SpecializationInfo = {
+    GetSpecialization = function()
+        return 1
+    end,
+    GetSpecializationInfo = function()
+        return 71, "Arms", nil, nil, "DAMAGER", 1
+    end,
+}
+
+CanDualWield = function()
+    return false
+end
+
+GetInventoryItemLink = function(_, slotID)
+    return equippedLinks[slotID]
+end
+
+GetInventoryItemID = function(_, slotID)
+    local equippedLink = equippedLinks[slotID]
+    return equippedLink and GetItemIDFromLink(equippedLink) or nil
+end
+
+C_PlayerInfo = {
+    CanUseItem = function(itemID)
+        return itemID ~= 1003
+    end,
+}
 
 C_Item = {
     GetItemInfoInstant = function(itemLink)
-        if itemLink:find("Hitem:999", 1, true) then
+        local itemID = GetItemIDFromLink(itemLink)
+
+        if itemID == 999 then
             return 999, "Consumable", "Potion", "", 134829, 0, 1
         end
 
-        return 19019, "Weapon", "Sword", "INVTYPE_WEAPON", 135771, 2, 7
+        local info = itemInfo[itemID] or itemInfo[19019]
+        return itemID, info[1], info[2], info[3], info[4], info[5], info[6]
     end,
-    GetDetailedItemLevelInfo = function()
-        return 639
+    GetDetailedItemLevelInfo = function(itemLink)
+        return itemLevels[GetItemIDFromLink(itemLink)]
     end,
     GetItemStats = function(itemLink)
         if itemLink:find("Hitem:999", 1, true) then
@@ -49,10 +150,24 @@ C_Item = {
         end
 
         local stats = {
+            ITEM_MOD_STRENGTH_SHORT = 150,
             ITEM_MOD_CRIT_RATING_SHORT = 95,
             ITEM_MOD_HASTE_RATING_SHORT = 120,
             ITEM_MOD_MASTERY_RATING_SHORT = 80,
         }
+
+        if itemLink:find("Hitem:1008", 1, true) then
+            stats.ITEM_MOD_STRENGTH_SHORT = nil
+            stats.ITEM_MOD_INTELLECT_SHORT = 150
+        end
+
+        if itemLink:find("Hitem:1004", 1, true)
+            or itemLink:find("Hitem:1005", 1, true)
+            or itemLink:find("Hitem:1006", 1, true)
+            or itemLink:find("Hitem:1009", 1, true)
+        then
+            stats.ITEM_MOD_STRENGTH_SHORT = nil
+        end
 
         if not itemLink:find("Hitem:888", 1, true) then
             stats.ITEM_MOD_CR_LIFESTEAL_SHORT = 48
@@ -62,6 +177,9 @@ C_Item = {
         end
 
         return stats
+    end,
+    GetItemSpecInfo = function()
+        return { 71 }
     end,
     RequestLoadItemDataByID = function() end,
 }
@@ -101,6 +219,16 @@ addonFrame.callback()
 local gearLink = "|cffa335ee|Hitem:19019:::::::::::::::|h[Thunderfury]|h|r"
 local plainGearLink = "|cffa335ee|Hitem:888:::::::::::::::|h[Plain Gear]|h|r"
 local consumableLink = "|cffffffff|Hitem:999:::::::::::::::|h[Test Potion]|h|r"
+local plateHeadLink = "|cffa335ee|Hitem:1001:::::::::::::::|h[Plate Helm]|h|r"
+local leatherHeadLink = "|cffa335ee|Hitem:1002:::::::::::::::|h[Leather Helm]|h|r"
+local unusableHeadLink = "|cffa335ee|Hitem:1003:::::::::::::::|h[Restricted Helm]|h|r"
+local upgradeRingLink = "|cffa335ee|Hitem:1004:::::::::::::::|h[Upgrade Ring]|h|r"
+local sameRingLink = "|cffa335ee|Hitem:1005:::::::::::::::|h[Same Ring]|h|r"
+local lowerRingLink = "|cffa335ee|Hitem:1006:::::::::::::::|h[Lower Ring]|h|r"
+local unknownHeadLink = "|cffa335ee|Hitem:1007:::::::::::::::|h[Unknown Helm]|h|r"
+local intellectHeadLink = "|cffa335ee|Hitem:1008:::::::::::::::|h[Intellect Helm]|h|r"
+local emptyNeckLink = "|cffa335ee|Hitem:1009:::::::::::::::|h[First Necklace]|h|r"
+local twoHandLink = "|cffa335ee|Hitem:1010:::::::::::::::|h[Two-Handed Sword]|h|r"
 
 local function Filter(eventName, message)
     local blocked, enhancedMessage = filters[eventName](nil, eventName, message)
@@ -111,7 +239,8 @@ end
 AssertEqual(
     "Loot: Sword/One-Hand/639: " .. gearLink
         .. " (Haste 120/Critical Strike 95/Mastery 80)"
-        .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|r",
+        .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|r"
+        .. " |cff67d8ff[Suitable]|r |cff55ff88[iLvl +8]|r",
     Filter("CHAT_MSG_LOOT", "Loot: " .. gearLink),
     "Default settings should append secondary stats in descending order."
 )
@@ -124,7 +253,8 @@ AssertEqual(
 
 AssertEqual(
     "Loot: Sword/One-Hand/639: " .. plainGearLink
-        .. " (Haste 120/Critical Strike 95/Mastery 80)",
+        .. " (Haste 120/Critical Strike 95/Mastery 80)"
+        .. " |cff67d8ff[Suitable]|r |cff55ff88[iLvl +8]|r",
     Filter("CHAT_MSG_LOOT", "Loot: " .. plainGearLink),
     "Gear without tertiary stats should not receive an empty highlighted group."
 )
@@ -133,12 +263,100 @@ local twoLinks = Filter("CHAT_MSG_LOOT", gearLink .. " and " .. gearLink)
 AssertEqual(
     "Sword/One-Hand/639: " .. gearLink .. " (Haste 120/Critical Strike 95/Mastery 80)"
         .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|r"
+        .. " |cff67d8ff[Suitable]|r |cff55ff88[iLvl +8]|r"
         .. " and Sword/One-Hand/639: " .. gearLink
         .. " (Haste 120/Critical Strike 95/Mastery 80)"
-        .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|r",
+        .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|r"
+        .. " |cff67d8ff[Suitable]|r |cff55ff88[iLvl +8]|r",
     twoLinks,
     "Every gear link in a message should be enhanced."
 )
+
+AssertEqual(
+    "Sword/One-Hand/639: " .. gearLink
+        .. " (Haste 120/Critical Strike 95/Mastery 80)"
+        .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|r",
+    Filter("CHAT_MSG_SAY", gearLink),
+    "Ordinary chat should keep the original enhancement without player-specific evaluation labels."
+)
+
+AssertContains(
+    Filter("CHAT_MSG_LOOT", plateHeadLink),
+    "|cff67d8ff[Suitable]|r |cff55ff88[iLvl +9]|r",
+    "Preferred armor with the current specialization's primary stat should be suitable and compared."
+)
+
+local wrongArmorMessage = Filter("CHAT_MSG_LOOT", leatherHeadLink)
+AssertContains(
+    wrongArmorMessage,
+    "|cffffc857[Not for Current Spec]|r",
+    "A lower armor proficiency should not be treated as suitable for the current specialization."
+)
+AssertNotContains(wrongArmorMessage, "[iLvl", "Wrong-spec armor should not receive an item-level comparison.")
+
+local wrongPrimaryMessage = Filter("CHAT_MSG_LOOT", intellectHeadLink)
+AssertContains(
+    wrongPrimaryMessage,
+    "|cffffc857[Not for Current Spec]|r",
+    "An item with a different primary stat should not be suitable for the current specialization."
+)
+AssertNotContains(wrongPrimaryMessage, "[iLvl", "Wrong-primary-stat gear should not receive a comparison.")
+
+local cannotEquipMessage = Filter("CHAT_MSG_LOOT", unusableHeadLink)
+AssertContains(
+    cannotEquipMessage,
+    "|cffff5c5c[Cannot Equip]|r",
+    "Items rejected by the player usability API should be marked as not equippable."
+)
+AssertNotContains(cannotEquipMessage, "[iLvl", "Unusable gear should not receive an item-level comparison.")
+
+AssertContains(
+    Filter("CHAT_MSG_LOOT", upgradeRingLink),
+    "|cff55ff88[iLvl +5]|r",
+    "Rings should compare against the lower of the two equipped ring item levels."
+)
+AssertContains(
+    Filter("CHAT_MSG_LOOT", sameRingLink),
+    "|cffc7cbd1[Same iLvl]|r",
+    "Equal item levels should receive a neutral label."
+)
+AssertContains(
+    Filter("CHAT_MSG_LOOT", lowerRingLink),
+    "|cffff8a65[iLvl -5]|r",
+    "Lower item levels should receive the downgrade label."
+)
+AssertContains(
+    Filter("CHAT_MSG_LOOT", emptyNeckLink),
+    "|cff50e3c2[Empty Slot]|r",
+    "An empty compatible slot should be identified directly."
+)
+AssertContains(
+    Filter("CHAT_MSG_LOOT", unknownHeadLink),
+    "|cffadb3bd[Item Level Unknown]|r",
+    "Missing detailed item-level data must not fall back to an upgrade guess."
+)
+
+equippedLinks[17] = "|cffa335ee|Hitem:5301:::::::::::::::|h[Equipped Off-Hand]|h|r"
+AssertContains(
+    Filter("CHAT_MSG_LOOT", twoHandLink),
+    "|cffffc857[Weapon Setup]|r",
+    "Two-handed weapons should avoid a misleading one-slot comparison when an off-hand is equipped."
+)
+equippedLinks[17] = nil
+
+SlashCmdList.SIMPLELOOTINFO("suitable off")
+AssertEqual(false, SimpleLootInfoDB.showSuitability, "Suitability preference should be persisted.")
+local comparisonOnlyMessage = Filter("CHAT_MSG_LOOT", gearLink)
+AssertNotContains(comparisonOnlyMessage, "[Suitable]", "Suitability labels should be independently disableable.")
+AssertContains(comparisonOnlyMessage, "[iLvl +8]", "Upgrade labels should remain when suitability is disabled.")
+SlashCmdList.SIMPLELOOTINFO("suitable on")
+
+SlashCmdList.SIMPLELOOTINFO("upgrade off")
+AssertEqual(false, SimpleLootInfoDB.showUpgrade, "Upgrade preference should be persisted.")
+local suitabilityOnlyMessage = Filter("CHAT_MSG_LOOT", gearLink)
+AssertContains(suitabilityOnlyMessage, "[Suitable]", "Suitability should remain when comparisons are disabled.")
+AssertNotContains(suitabilityOnlyMessage, "[iLvl", "Upgrade labels should be independently disableable.")
+SlashCmdList.SIMPLELOOTINFO("upgrade on")
 
 SlashCmdList.SIMPLELOOTINFO("icon on")
 AssertEqual(true, SimpleLootInfoDB.showIcon, "Icon preference should be persisted.")
@@ -159,7 +377,8 @@ AssertContains(
 SlashCmdList.SIMPLELOOTINFO("tertiary off")
 AssertEqual(false, SimpleLootInfoDB.showTertiary, "Tertiary stat preference should be persisted.")
 AssertEqual(
-    "Loot: |T135771:14:14:0:0|t Sword/One-Hand/639: " .. gearLink,
+    "Loot: |T135771:14:14:0:0|t Sword/One-Hand/639: " .. gearLink
+        .. " |cff67d8ff[Suitable]|r |cff55ff88[iLvl +8]|r",
     Filter("CHAT_MSG_LOOT", "Loot: " .. gearLink),
     "Secondary and tertiary stats should be independently disableable."
 )
@@ -201,6 +420,8 @@ AssertEqual(true, SimpleLootInfoDB.showItemLevel, "Reset should restore item lev
 AssertEqual(true, SimpleLootInfoDB.showSecondary, "Reset should restore secondary stats.")
 AssertEqual(true, SimpleLootInfoDB.showTertiary, "Reset should restore tertiary stats.")
 AssertEqual(false, SimpleLootInfoDB.showIcon, "Reset should hide the optional icon.")
+AssertEqual(true, SimpleLootInfoDB.showSuitability, "Reset should restore suitability labels.")
+AssertEqual(true, SimpleLootInfoDB.showUpgrade, "Reset should restore item-level comparisons.")
 AssertEqual(true, SimpleLootInfoDB.enhanceLoot, "Reset should restore loot enhancements.")
 AssertEqual(true, SimpleLootInfoDB.enhanceChat, "Reset should restore chat enhancements.")
 
