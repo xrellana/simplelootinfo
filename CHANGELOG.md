@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.2
+
+### Changed
+
+- Refined loot evaluation into distinct suitability results: `Suitable`, `Wrong Armor Type`, `Wrong Primary Stat`, `Not for Current Spec` and `Cannot Equip`.
+- Clarified that armor-type and primary-stat mismatches are reported separately from specialization mismatches.
+- Renamed the ambiguous `Weapon Setup` comparison label to `Different Weapon Setup`.
+
 ## 1.4.1
 
 ### Changed

@@ -8,9 +8,12 @@ local EVALUATION_COLORS = {
     same = "|cffc7cbd1",
     downgrade = "|cffff8a65",
     empty = "|cff50e3c2",
+    wrongArmorType = "|cffffc857",
+    wrongPrimaryStat = "|cffffc857",
     notCurrentSpec = "|cffffc857",
     cannotEquip = "|cffff5c5c",
     unknown = "|cffadb3bd",
+    differentWeaponSetup = "|cffffc857",
 }
 
 local PRIMARY_STAT_KEYS = {
@@ -307,7 +310,7 @@ end
 
 local function BuildItemLevelComparisonText(itemLink, itemEquipLoc)
     if NeedsManualWeaponComparison(itemEquipLoc) then
-        return ColorLabel(L.weaponSetup, EVALUATION_COLORS.notCurrentSpec)
+        return ColorLabel(L.differentWeaponSetup, EVALUATION_COLORS.differentWeaponSetup)
     end
 
     local slotIDs = GetComparisonSlots(itemEquipLoc)
@@ -375,16 +378,28 @@ function SLI.BuildEquipmentEvaluationText(itemLink, itemID, classID, subClassID,
         return nil
     end
 
-    local matchesCurrentSpec = MatchesPreferredArmorType(
+    if not MatchesPreferredArmorType(
         classID,
         subClassID,
         itemEquipLoc,
         playerContext.classToken
-    )
-        and MatchesPrimaryStat(itemStats, playerContext.primaryStat)
-        and MatchesCurrentSpecialization(itemLink, playerContext.specializationID)
+    ) then
+        if settings.showSuitability then
+            return ColorLabel(L.wrongArmorType, EVALUATION_COLORS.wrongArmorType)
+        end
 
-    if not matchesCurrentSpec then
+        return nil
+    end
+
+    if not MatchesPrimaryStat(itemStats, playerContext.primaryStat) then
+        if settings.showSuitability then
+            return ColorLabel(L.wrongPrimaryStat, EVALUATION_COLORS.wrongPrimaryStat)
+        end
+
+        return nil
+    end
+
+    if not MatchesCurrentSpecialization(itemLink, playerContext.specializationID) then
         if settings.showSuitability then
             return ColorLabel(L.notCurrentSpec, EVALUATION_COLORS.notCurrentSpec)
         end

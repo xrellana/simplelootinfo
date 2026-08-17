@@ -19,12 +19,14 @@ local DEFAULTS = {
 local LOCALES = {
     enUS = {
         suitable = "Suitable",
+        wrongArmorType = "Wrong Armor Type",
+        wrongPrimaryStat = "Wrong Primary Stat",
         notCurrentSpec = "Not for Current Spec",
         cannotEquip = "Cannot Equip",
         itemLevelUnknown = "Item Level Unknown",
         sameItemLevel = "Same iLvl",
         emptySlot = "Empty Slot",
-        weaponSetup = "Weapon Setup",
+        differentWeaponSetup = "Different Weapon Setup",
         itemLevelDelta = "iLvl %+d",
     },
 }

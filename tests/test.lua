@@ -61,6 +61,10 @@ local itemInfo = {
     [1008] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
     [1009] = { "Armor", "Miscellaneous", "INVTYPE_NECK", 133296, 4, 0 },
     [1010] = { "Weapon", "Two-Handed Sword", "INVTYPE_2HWEAPON", 135349, 2, 8 },
+    [1011] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
+    [1012] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
+    [1013] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
+    [1014] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
     [5001] = { "Weapon", "Sword", "INVTYPE_WEAPON", 135771, 2, 7 },
     [5101] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
     [5201] = { "Armor", "Miscellaneous", "INVTYPE_FINGER", 133345, 4, 0 },
@@ -79,6 +83,10 @@ local itemLevels = {
     [1008] = 639,
     [1009] = 639,
     [1010] = 650,
+    [1011] = 639,
+    [1012] = 639,
+    [1013] = 639,
+    [1014] = 639,
     [5001] = 631,
     [5101] = 630,
     [5201] = 625,
@@ -178,7 +186,25 @@ C_Item = {
 
         return stats
     end,
-    GetItemSpecInfo = function()
+    GetItemSpecInfo = function(itemLink)
+        local itemID = GetItemIDFromLink(itemLink)
+
+        if itemID == 1011 then
+            return { 72 }
+        end
+
+        if itemID == 1012 then
+            return { 72, 71 }
+        end
+
+        if itemID == 1013 then
+            return {}
+        end
+
+        if itemID == 1014 then
+            return nil
+        end
+
         return { 71 }
     end,
     RequestLoadItemDataByID = function() end,
@@ -240,6 +266,10 @@ local unknownHeadLink = "|cffa335ee|Hitem:1007:::::::::::::::|h[Unknown Helm]|h|
 local intellectHeadLink = "|cffa335ee|Hitem:1008:::::::::::::::|h[Intellect Helm]|h|r"
 local emptyNeckLink = "|cffa335ee|Hitem:1009:::::::::::::::|h[First Necklace]|h|r"
 local twoHandLink = "|cffa335ee|Hitem:1010:::::::::::::::|h[Two-Handed Sword]|h|r"
+local specMismatchHeadLink = "|cffa335ee|Hitem:1011:::::::::::::::|h[Other Spec Helm]|h|r"
+local multiSpecHeadLink = "|cffa335ee|Hitem:1012:::::::::::::::|h[Multi-Spec Helm]|h|r"
+local emptySpecHeadLink = "|cffa335ee|Hitem:1013:::::::::::::::|h[Empty Spec Helm]|h|r"
+local missingSpecHeadLink = "|cffa335ee|Hitem:1014:::::::::::::::|h[Missing Spec Helm]|h|r"
 
 local function Filter(eventName, message)
     local blocked, enhancedMessage = filters[eventName](nil, eventName, message)
@@ -300,18 +330,93 @@ AssertContains(
 local wrongArmorMessage = Filter("CHAT_MSG_LOOT", leatherHeadLink)
 AssertContains(
     wrongArmorMessage,
-    "|cffffc857[Not for Current Spec]|r",
-    "A lower armor proficiency should not be treated as suitable for the current specialization."
+    "[Wrong Armor Type]",
+    "A non-preferred armor type should receive a specific armor-mismatch label."
 )
-AssertNotContains(wrongArmorMessage, "[iLvl", "Wrong-spec armor should not receive an item-level comparison.")
+AssertNotContains(
+    wrongArmorMessage,
+    "[Not for Current Spec]",
+    "An armor mismatch should not be conflated with an item specialization mismatch."
+)
+AssertNotContains(
+    wrongArmorMessage,
+    "[Wrong Primary Stat]",
+    "An armor mismatch should not be conflated with a primary-stat mismatch."
+)
+AssertNotContains(wrongArmorMessage, "[iLvl", "Wrong-armor gear should not receive an item-level comparison.")
 
 local wrongPrimaryMessage = Filter("CHAT_MSG_LOOT", intellectHeadLink)
 AssertContains(
     wrongPrimaryMessage,
-    "|cffffc857[Not for Current Spec]|r",
-    "An item with a different primary stat should not be suitable for the current specialization."
+    "[Wrong Primary Stat]",
+    "An item with a different primary stat should receive a specific primary-stat label."
+)
+AssertNotContains(
+    wrongPrimaryMessage,
+    "[Not for Current Spec]",
+    "A primary-stat mismatch should not be conflated with an item specialization mismatch."
+)
+AssertNotContains(
+    wrongPrimaryMessage,
+    "[Wrong Armor Type]",
+    "A primary-stat mismatch should not be conflated with an armor mismatch."
 )
 AssertNotContains(wrongPrimaryMessage, "[iLvl", "Wrong-primary-stat gear should not receive a comparison.")
+
+local wrongItemSpecMessage = Filter("CHAT_MSG_LOOT", specMismatchHeadLink)
+AssertContains(
+    wrongItemSpecMessage,
+    "[Not for Current Spec]",
+    "An item restricted to another specialization should receive the specialization label."
+)
+AssertNotContains(
+    wrongItemSpecMessage,
+    "[Wrong Armor Type]",
+    "A specialization mismatch should not be conflated with an armor mismatch."
+)
+AssertNotContains(
+    wrongItemSpecMessage,
+    "[Wrong Primary Stat]",
+    "A specialization mismatch should not be conflated with a primary-stat mismatch."
+)
+AssertNotContains(
+    wrongItemSpecMessage,
+    "[iLvl",
+    "Gear restricted to another specialization should not receive an item-level comparison."
+)
+
+AssertContains(
+    Filter("CHAT_MSG_LOOT", multiSpecHeadLink),
+    "[Suitable]",
+    "An item listing multiple specializations should be suitable when it includes the current specialization."
+)
+AssertContains(
+    Filter("CHAT_MSG_LOOT", multiSpecHeadLink),
+    "[iLvl +9]",
+    "A multi-specialization item that includes the current specialization should still be compared."
+)
+
+AssertContains(
+    Filter("CHAT_MSG_LOOT", emptySpecHeadLink),
+    "[Suitable]",
+    "An item with an explicitly empty specialization list should remain usable for conservative evaluation."
+)
+AssertContains(
+    Filter("CHAT_MSG_LOOT", emptySpecHeadLink),
+    "[iLvl +9]",
+    "An item with an empty specialization list should still receive a comparison when other checks pass."
+)
+
+AssertContains(
+    Filter("CHAT_MSG_LOOT", missingSpecHeadLink),
+    "[Suitable]",
+    "An item without specialization metadata should remain usable for conservative evaluation."
+)
+AssertContains(
+    Filter("CHAT_MSG_LOOT", missingSpecHeadLink),
+    "[iLvl +9]",
+    "An item without specialization metadata should still receive a comparison when other checks pass."
+)
 
 local cannotEquipMessage = Filter("CHAT_MSG_LOOT", unusableHeadLink)
 AssertContains(
@@ -350,7 +455,7 @@ AssertContains(
 equippedLinks[17] = "|cffa335ee|Hitem:5301:::::::::::::::|h[Equipped Off-Hand]|h|r"
 AssertContains(
     Filter("CHAT_MSG_LOOT", twoHandLink),
-    "|cffffc857[Weapon Setup]|r",
+    "|cffffc857[Different Weapon Setup]|r",
     "Two-handed weapons should avoid a misleading one-slot comparison when an off-hand is equipped."
 )
 equippedLinks[17] = nil

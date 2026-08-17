@@ -54,14 +54,16 @@ when color alone is hard to distinguish:
 
 | Label | Meaning |
 | --- | --- |
-| `Suitable` | The item can be equipped and matches the current specialization. |
-| `Not for Current Spec` | The item can be equipped, but its primary-stat/spec combination is not intended for the current specialization. |
+| `Suitable` | The item can be equipped and passes the preferred armor type, primary stat and current specialization checks. |
+| `Wrong Armor Type` | The item can be equipped, but its armor type is not the preferred type for the current class. |
+| `Wrong Primary Stat` | The item can be equipped, but it does not provide the primary stat used by the current specialization. |
+| `Not for Current Spec` | The item can be equipped and passes the armor-type and primary-stat checks, but its item specialization data does not include the current specialization. |
 | `Cannot Equip` | The current character cannot equip the item. |
 | `iLvl +N` / `iLvl -N` | The item is N item levels higher/lower than the equipped item in the corresponding slot. |
 | `Same iLvl` | The item and the equipped comparison item have the same item level. |
 | `Empty Slot` | There is no equipped item in the corresponding slot to compare against. |
 | `Item Level Unknown` | The client does not have enough detailed candidate or equipped item-level data to make a reliable comparison yet. |
-| `Weapon Setup` | A one-hand/two-hand transition affects both weapon slots, so a one-slot item-level result would be misleading. |
+| `Different Weapon Setup` | A one-hand/two-hand transition affects both weapon slots, so a one-slot item-level result would be misleading. |
 
 Suitability and item-level labels are independent settings. Either can be disabled
 without changing the normal chat-link decoration.
@@ -75,9 +77,10 @@ without changing the normal chat-link decoration.
   highest to lowest in the regular secondary-stat group.
 - Detects Leech, Avoidance, Speed and Indestructible separately and highlights them in
   gold so rare tertiary rolls stand out immediately.
-- Appends loot-only `Suitable`, `Not for Current Spec`, `Cannot Equip`, `iLvl +/-`,
-  `Same iLvl`, `Empty Slot`, `Item Level Unknown` or `Weapon Setup` labels after the
-  existing complete output.
+- Appends loot-only `Suitable`, `Wrong Armor Type`, `Wrong Primary Stat`,
+  `Not for Current Spec`, `Cannot Equip`, `iLvl +/-`, `Same iLvl`, `Empty Slot`,
+  `Item Level Unknown` or `Different Weapon Setup` labels after the existing
+  complete output.
 - Uses both color and text for every loot evaluation result, keeping the labels
   readable without relying on color alone.
 - Lets you independently show or hide item type, equipment slot, item level, secondary
@@ -132,8 +135,8 @@ Then `/reload` or restart the client.
 | `/sli secondary [on\|off]` | Toggle secondary stats after the link (`stats` is an alias) |
 | `/sli tertiary [on\|off]` | Toggle highlighted tertiary stats after the secondary stats |
 | `/sli icon [on\|off]` | Toggle a 14px inline item icon |
-| `/sli suitable [on\|off]` | Toggle loot-only suitability labels (`Suitable`, `Not for Current Spec`, `Cannot Equip`) |
-| `/sli upgrade [on\|off]` | Toggle loot-only item-level comparison labels (`iLvl +/-`, `Same iLvl`, `Empty Slot`, `Item Level Unknown`, `Weapon Setup`) |
+| `/sli suitable [on\|off]` | Toggle loot-only suitability labels (`Suitable`, `Wrong Armor Type`, `Wrong Primary Stat`, `Not for Current Spec`, `Cannot Equip`) |
+| `/sli upgrade [on\|off]` | Toggle loot-only item-level comparison labels (`iLvl +/-`, `Same iLvl`, `Empty Slot`, `Item Level Unknown`, `Different Weapon Setup`) |
 | `/sli loot [on\|off]` | Toggle enhancements in loot messages |
 | `/sli chat [on\|off]` | Toggle enhancements in ordinary chat |
 | `/sli status` | Show the current configuration |
@@ -170,7 +173,7 @@ new addon version.
 - The very first time you see an item in a session, the client may not have its data
   cached. The addon requests it in the background, so a subsequent link of the same item
   will be decorated correctly.
-- One-hand/two-hand transitions are labeled `Weapon Setup` instead of receiving a
+- One-hand/two-hand transitions are labeled `Different Weapon Setup` instead of receiving a
   potentially misleading single-slot item-level comparison.
 - Only weapons (class ID 2) and armor (class ID 4) are decorated. This is intentional.
 
