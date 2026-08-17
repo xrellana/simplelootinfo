@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - SimpleLootInfo.lua
+      - '*.lua'
       - SimpleLootInfo.toc
 
 permissions:
@@ -59,7 +59,7 @@ jobs:
 
           archive="SimpleLootInfo-${RELEASE_TAG}.zip"
           mkdir -p dist/SimpleLootInfo
-          install -m 0644 SimpleLootInfo.lua SimpleLootInfo.toc dist/SimpleLootInfo/
+          install -m 0644 ./*.lua SimpleLootInfo.toc dist/SimpleLootInfo/
           (cd dist && zip -r "../${archive}" SimpleLootInfo)
 
           echo "Archive contents:"

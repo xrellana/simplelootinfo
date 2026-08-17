@@ -213,7 +213,18 @@ CreateFrame = function()
     return frame
 end
 
-dofile("SimpleLootInfo.lua")
+local addonNamespace = {}
+
+for fileName in io.lines("SimpleLootInfo.toc") do
+    fileName = fileName:match("^%s*(.-)%s*$")
+
+    if fileName ~= "" and not fileName:match("^#") and fileName:match("%.lua$") then
+        local chunk, loadError = loadfile(fileName)
+        assert(chunk, loadError)
+        chunk("SimpleLootInfo", addonNamespace)
+    end
+end
+
 addonFrame.callback()
 
 local gearLink = "|cffa335ee|Hitem:19019:::::::::::::::|h[Thunderfury]|h|r"

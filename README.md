@@ -110,8 +110,12 @@ without changing the normal chat-link decoration.
 
 ```
 World of Warcraft/_retail_/Interface/AddOns/SimpleLootInfo/
-├── SimpleLootInfo.toc
-└── SimpleLootInfo.lua
+├── Chat.lua
+├── Commands.lua
+├── Evaluation.lua
+├── ItemLink.lua
+├── SimpleLootInfo.lua
+└── SimpleLootInfo.toc
 ```
 
 Then `/reload` or restart the client.
@@ -152,8 +156,8 @@ data is requested asynchronously when the client has not cached it yet.
 ## Publishing a release
 
 Update `## Version` in `SimpleLootInfo.toc` whenever addon code changes. After a commit
-that modifies `SimpleLootInfo.lua` or `SimpleLootInfo.toc` is merged into `main`, the
-release workflow automatically creates the matching tag and GitHub Release.
+that modifies any top-level addon Lua file or `SimpleLootInfo.toc` is merged into
+`main`, the release workflow automatically creates the matching tag and GitHub Release.
 
 For example, TOC version `1.4.0` produces `SimpleLootInfo-v1.4.0.zip` with the required
 `SimpleLootInfo/` directory structure and automatically generated release notes. If

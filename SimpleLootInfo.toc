@@ -7,3 +7,7 @@
 ## SavedVariables: SimpleLootInfoDB
 
 SimpleLootInfo.lua
+Evaluation.lua
+ItemLink.lua
+Chat.lua
+Commands.lua
