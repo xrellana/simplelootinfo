@@ -150,11 +150,13 @@ cached yet.
 ## Compatibility
 
 Built against Interface `120100` (Retail). It uses `C_Item.GetItemInfoInstant`,
-`C_Item.GetDetailedItemLevelInfo`, `C_Item.GetItemStats`, `C_Item.GetItemSpecInfo`,
-`C_PlayerInfo.CanUseItem`, the specialization APIs and equipped inventory links. The
-normal decoration keeps its `GetItemInfo` item-level fallback, while upgrade labels
-require detailed item levels so a base level cannot be mistaken for an upgrade. Item
-data is requested asynchronously when the client has not cached it yet.
+`C_TooltipInfo`, `C_Item.GetDetailedItemLevelInfo`, `C_Item.GetItemStats`,
+`C_Item.GetItemSpecInfo`, `C_PlayerInfo.CanUseItem`, the specialization APIs and
+equipped inventory links. Item-level displays prefer the level shown by the client
+tooltip so WoW 12.0's pre-squish API values are not mixed with squished values. The
+normal decoration retains API fallbacks, while upgrade labels require tooltip-backed
+levels and otherwise report `Item Level Unknown`. Item data is requested asynchronously
+when the client has not cached it yet.
 
 ## Publishing a release
 

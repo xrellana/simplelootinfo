@@ -33,6 +33,8 @@ INVTYPE_2HWEAPON = "Two-Hand"
 INVTYPE_HEAD = "Head"
 INVTYPE_NECK = "Neck"
 INVTYPE_FINGER = "Finger"
+INVTYPE_LEGS = "Legs"
+ITEM_LEVEL = "Item Level %d"
 ITEM_MOD_CRIT_RATING_SHORT = "Critical Strike"
 ITEM_MOD_HASTE_RATING_SHORT = "Haste"
 ITEM_MOD_MASTERY_RATING_SHORT = "Mastery"
@@ -44,6 +46,11 @@ ITEM_MOD_CR_STURDINESS_SHORT = "Indestructible"
 ITEM_MOD_STRENGTH_SHORT = "Strength"
 ITEM_MOD_AGILITY_SHORT = "Agility"
 ITEM_MOD_INTELLECT_SHORT = "Intellect"
+Enum = {
+    TooltipDataLineType = {
+        ItemLevel = 31,
+    },
+}
 
 local function GetItemIDFromLink(itemLink)
     return tonumber(itemLink:match("Hitem:(%d+)"))
@@ -65,10 +72,12 @@ local itemInfo = {
     [1012] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
     [1013] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
     [1014] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
+    [1020] = { "Armor", "Plate", "INVTYPE_LEGS", 134681, 4, 4 },
     [5001] = { "Weapon", "Sword", "INVTYPE_WEAPON", 135771, 2, 7 },
     [5101] = { "Armor", "Plate", "INVTYPE_HEAD", 133071, 4, 4 },
     [5201] = { "Armor", "Miscellaneous", "INVTYPE_FINGER", 133345, 4, 0 },
     [5202] = { "Armor", "Miscellaneous", "INVTYPE_FINGER", 133345, 4, 0 },
+    [5401] = { "Armor", "Plate", "INVTYPE_LEGS", 134681, 4, 4 },
     [19019] = { "Weapon", "Sword", "INVTYPE_WEAPON", 135771, 2, 7 },
 }
 
@@ -80,6 +89,7 @@ local itemLevels = {
     [1004] = 630,
     [1005] = 625,
     [1006] = 620,
+    [1007] = 640,
     [1008] = 639,
     [1009] = 639,
     [1010] = 650,
@@ -92,7 +102,18 @@ local itemLevels = {
     [5201] = 625,
     [5202] = 635,
     [5301] = 630,
+    [5401] = 652,
     [19019] = 639,
+    [1020] = 276,
+}
+
+local displayedItemLevelOverrides = {
+    -- WoW 12.0 can expose a pre-squish API level while its tooltip shows the squished level.
+    [5401] = 102,
+}
+
+local missingTooltipItemLevels = {
+    [1007] = true,
 }
 
 local equippedLinks = {
@@ -100,6 +121,7 @@ local equippedLinks = {
     [11] = "|cffa335ee|Hitem:5201:::::::::::::::|h[Lower Ring]|h|r",
     [12] = "|cffa335ee|Hitem:5202:::::::::::::::|h[Higher Ring]|h|r",
     [16] = "|cffa335ee|Hitem:5001:::::::::::::::|h[Equipped Sword]|h|r",
+    [7] = "|cffa335ee|Hitem:5401:::::::::::::::|h[Pre-Squish Legs]|h|r",
 }
 
 GetLocale = function()
@@ -210,6 +232,41 @@ C_Item = {
     RequestLoadItemDataByID = function() end,
 }
 
+local function BuildItemTooltipData(itemLink)
+    if not itemLink then
+        return nil
+    end
+
+    local itemID = GetItemIDFromLink(itemLink)
+
+    if missingTooltipItemLevels[itemID] then
+        return { lines = {} }
+    end
+
+    local itemLevel = displayedItemLevelOverrides[itemID] or itemLevels[itemID]
+
+    if not itemLevel then
+        return { lines = {} }
+    end
+
+    return {
+        lines = {
+            {
+                type = Enum.TooltipDataLineType.ItemLevel,
+                itemLevel = itemLevel,
+                leftText = string.format(ITEM_LEVEL, itemLevel),
+            },
+        },
+    }
+end
+
+C_TooltipInfo = {
+    GetHyperlink = BuildItemTooltipData,
+    GetInventoryItem = function(_, slotID)
+        return BuildItemTooltipData(equippedLinks[slotID])
+    end,
+}
+
 GetItemInfo = function()
     return nil, nil, nil, 639
 end
@@ -270,6 +327,7 @@ local specMismatchHeadLink = "|cffa335ee|Hitem:1011:::::::::::::::|h[Other Spec 
 local multiSpecHeadLink = "|cffa335ee|Hitem:1012:::::::::::::::|h[Multi-Spec Helm]|h|r"
 local emptySpecHeadLink = "|cffa335ee|Hitem:1013:::::::::::::::|h[Empty Spec Helm]|h|r"
 local missingSpecHeadLink = "|cffa335ee|Hitem:1014:::::::::::::::|h[Missing Spec Helm]|h|r"
+local squishedLegsLink = "|cffa335ee|Hitem:1020:::::::::::::::|h[Squished Upgrade Legs]|h|r"
 
 local function Filter(eventName, message)
     local blocked, enhancedMessage = filters[eventName](nil, eventName, message)
@@ -441,6 +499,24 @@ AssertContains(
     "|cffff8a65[iLvl -5]|r",
     "Lower item levels should receive the downgrade label."
 )
+AssertEqual(
+    652,
+    C_Item.GetDetailedItemLevelInfo(equippedLinks[7]),
+    "The regression fixture should reproduce the pre-squish API level."
+)
+AssertContains(
+    Filter("CHAT_MSG_LOOT", squishedLegsLink),
+    "|cff55ff88[iLvl +174]|r",
+    "Comparisons should use squished tooltip levels instead of the pre-squish API level."
+)
+local getInventoryItemTooltip = C_TooltipInfo.GetInventoryItem
+C_TooltipInfo.GetInventoryItem = nil
+AssertContains(
+    Filter("CHAT_MSG_LOOT", upgradeRingLink),
+    "|cff55ff88[iLvl +5]|r",
+    "Equipped comparisons should fall back to the equipped link's tooltip data."
+)
+C_TooltipInfo.GetInventoryItem = getInventoryItemTooltip
 AssertContains(
     Filter("CHAT_MSG_LOOT", emptyNeckLink),
     "|cff50e3c2[Empty Slot]|r",
@@ -449,7 +525,7 @@ AssertContains(
 AssertContains(
     Filter("CHAT_MSG_LOOT", unknownHeadLink),
     "|cffadb3bd[Item Level Unknown]|r",
-    "Missing detailed item-level data must not fall back to an upgrade guess."
+    "Missing tooltip item-level data must not fall back to an unreliable API guess."
 )
 
 equippedLinks[17] = "|cffa335ee|Hitem:5301:::::::::::::::|h[Equipped Off-Hand]|h|r"

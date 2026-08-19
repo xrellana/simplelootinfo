@@ -98,6 +98,46 @@ local function ColorLabel(text, color)
     return color .. "[" .. text .. "]|r"
 end
 
+local ITEM_LEVEL_LINE_TYPE = Enum
+    and Enum.TooltipDataLineType
+    and Enum.TooltipDataLineType.ItemLevel
+local ITEM_LEVEL_PATTERN = type(ITEM_LEVEL) == "string"
+    and ITEM_LEVEL:gsub("%%d", "(%%d+)")
+
+local function GetItemLevelFromTooltipData(tooltipData)
+    if type(tooltipData) ~= "table" or type(tooltipData.lines) ~= "table" then
+        return nil
+    end
+
+    for _, line in ipairs(tooltipData.lines) do
+        if type(line) == "table"
+            and (not ITEM_LEVEL_LINE_TYPE or line.type == ITEM_LEVEL_LINE_TYPE)
+        then
+            if type(line.itemLevel) == "number" and line.itemLevel > 0 then
+                return line.itemLevel
+            end
+
+            if ITEM_LEVEL_PATTERN and type(line.leftText) == "string" then
+                local itemLevel = tonumber(line.leftText:match(ITEM_LEVEL_PATTERN))
+
+                if itemLevel and itemLevel > 0 then
+                    return itemLevel
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+function SLI.GetDisplayedItemLevel(itemLink)
+    if not itemLink or not C_TooltipInfo or not C_TooltipInfo.GetHyperlink then
+        return nil
+    end
+
+    return GetItemLevelFromTooltipData(C_TooltipInfo.GetHyperlink(itemLink))
+end
+
 local function GetDetailedItemLevelForComparison(itemLink)
     if not C_Item or not C_Item.GetDetailedItemLevelInfo then
         return nil
@@ -214,7 +254,23 @@ local function GetEquippedItemInfo(slotID)
         return nil, "empty"
     end
 
-    local itemLevel = GetDetailedItemLevelForComparison(equippedLink)
+    local itemLevel
+
+    -- On modern clients, missing tooltip data is safer than mixing a squished tooltip
+    -- level with a potentially pre-squish level from GetDetailedItemLevelInfo.
+    if C_TooltipInfo then
+        if C_TooltipInfo.GetInventoryItem then
+            itemLevel = GetItemLevelFromTooltipData(
+                C_TooltipInfo.GetInventoryItem("player", slotID)
+            )
+        end
+
+        if not itemLevel then
+            itemLevel = SLI.GetDisplayedItemLevel(equippedLink)
+        end
+    else
+        itemLevel = GetDetailedItemLevelForComparison(equippedLink)
+    end
 
     if not itemLevel then
         return nil, "unknown"
@@ -319,7 +375,15 @@ local function BuildItemLevelComparisonText(itemLink, itemEquipLoc)
         return nil
     end
 
-    local candidateItemLevel = GetDetailedItemLevelForComparison(itemLink)
+    local candidateItemLevel
+
+    -- Do not fall back to the raw API on modern clients: WoW 12.0 can return
+    -- pre-squish values there while tooltip data is already squished.
+    if C_TooltipInfo then
+        candidateItemLevel = SLI.GetDisplayedItemLevel(itemLink)
+    else
+        candidateItemLevel = GetDetailedItemLevelForComparison(itemLink)
+    end
 
     if not candidateItemLevel then
         return ColorLabel(L.itemLevelUnknown, EVALUATION_COLORS.unknown)

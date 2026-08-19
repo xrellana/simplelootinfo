@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.3
+
+### Fixed
+
+- Fixed incorrect item-level deltas when WoW 12.0 returns a pre-squish API level for an item whose tooltip shows the squished level.
+- Item-level displays and comparisons now prefer the client tooltip's displayed level, and unreliable comparisons fall back to `Item Level Unknown`.
+
 ## 1.4.2
 
 ### Changed
