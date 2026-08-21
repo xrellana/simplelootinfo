@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.4
+
+### Changed
+
+- Memoized displayed item levels so a decorated link resolves its tooltip once instead of once for the display and again for the comparison.
+- Cached equipped-slot lookups, keyed by the equipped item link so a gear change invalidates them without an event. Loot bursts no longer rebuild the same tooltips for every message.
+- Item levels are only memoized once the client has fully cached the item, and are dropped on level-up or a world change so level-scaled items cannot go stale.
+
 ## 1.4.3
 
 ### Fixed

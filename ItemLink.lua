@@ -34,7 +34,7 @@ local function IsValidEquipment(classID, itemEquipLoc)
 end
 
 local function GetItemLevel(itemLink, itemID)
-    local itemLevel = SLI.GetDisplayedItemLevel and SLI.GetDisplayedItemLevel(itemLink)
+    local itemLevel = SLI.GetCachedDisplayedItemLevel and SLI.GetCachedDisplayedItemLevel(itemLink)
 
     if not itemLevel and C_Item and C_Item.GetDetailedItemLevelInfo then
         itemLevel = C_Item.GetDetailedItemLevelInfo(itemLink)

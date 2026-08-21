@@ -260,15 +260,23 @@ local function BuildItemTooltipData(itemLink)
     }
 end
 
+local hyperlinkTooltipCalls = 0
+local inventoryTooltipCalls = 0
+
 C_TooltipInfo = {
-    GetHyperlink = BuildItemTooltipData,
+    GetHyperlink = function(itemLink)
+        hyperlinkTooltipCalls = hyperlinkTooltipCalls + 1
+        return BuildItemTooltipData(itemLink)
+    end,
     GetInventoryItem = function(_, slotID)
+        inventoryTooltipCalls = inventoryTooltipCalls + 1
         return BuildItemTooltipData(equippedLinks[slotID])
     end,
 }
 
-GetItemInfo = function()
-    return nil, nil, nil, 639
+-- The real API returns the item name first and is nil until the item is cached.
+GetItemInfo = function(itemLink)
+    return "Test Item", itemLink, 4, 639
 end
 
 ChatFrame_AddMessageEventFilter = function(eventName, callback)
@@ -282,10 +290,10 @@ C_Timer = {
 }
 
 CreateFrame = function()
-    local frame = {}
+    local frame = { events = {} }
 
     frame.RegisterEvent = function(self, eventName)
-        self.eventName = eventName
+        self.events[eventName] = true
     end
 
     frame.SetScript = function(self, _, callback)
@@ -308,7 +316,7 @@ for fileName in io.lines("SimpleLootInfo.toc") do
     end
 end
 
-addonFrame.callback()
+addonFrame.callback(addonFrame, "PLAYER_LOGIN")
 
 local gearLink = "|cffa335ee|Hitem:19019:::::::::::::::|h[Thunderfury]|h|r"
 local plainGearLink = "|cffa335ee|Hitem:888:::::::::::::::|h[Plain Gear]|h|r"
@@ -509,8 +517,46 @@ AssertContains(
     "|cff55ff88[iLvl +174]|r",
     "Comparisons should use squished tooltip levels instead of the pre-squish API level."
 )
+addonNamespace.ResetItemLevelCaches()
+hyperlinkTooltipCalls = 0
+inventoryTooltipCalls = 0
+
+Filter("CHAT_MSG_LOOT", plateHeadLink)
+AssertEqual(
+    1,
+    hyperlinkTooltipCalls,
+    "A loot line should resolve its candidate item level with a single tooltip lookup."
+)
+AssertEqual(
+    1,
+    inventoryTooltipCalls,
+    "A loot line should resolve the compared slot with a single tooltip lookup."
+)
+
+Filter("CHAT_MSG_LOOT", plateHeadLink)
+AssertEqual(
+    1,
+    hyperlinkTooltipCalls,
+    "Repeating a link should reuse the memoized candidate item level."
+)
+AssertEqual(
+    1,
+    inventoryTooltipCalls,
+    "An unchanged equipped item should not be resolved from its tooltip again."
+)
+
+equippedLinks[1] = "|cffa335ee|Hitem:5101:::::::::::::::|h[Reforged Helm]|h|r"
+Filter("CHAT_MSG_LOOT", plateHeadLink)
+AssertEqual(
+    2,
+    inventoryTooltipCalls,
+    "A changed equipped link should invalidate its cached slot without needing an event."
+)
+equippedLinks[1] = "|cffa335ee|Hitem:5101:::::::::::::::|h[Equipped Helm]|h|r"
+
 local getInventoryItemTooltip = C_TooltipInfo.GetInventoryItem
 C_TooltipInfo.GetInventoryItem = nil
+addonNamespace.ResetItemLevelCaches()
 AssertContains(
     Filter("CHAT_MSG_LOOT", upgradeRingLink),
     "|cff55ff88[iLvl +5]|r",

@@ -60,9 +60,21 @@ end
 
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_LOGIN")
-frame:SetScript("OnEvent", function()
-    SLI.InitializeSettings()
+frame:RegisterEvent("PLAYER_LEVEL_UP")
+frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+frame:SetScript("OnEvent", function(_, event)
+    if event == "PLAYER_LOGIN" then
+        SLI.InitializeSettings()
 
-    -- Register slightly later to avoid being overwritten by other chat/item-link addons.
-    C_Timer.After(2, SLI.RegisterChatFilters)
+        -- Register slightly later to avoid being overwritten by other chat/item-link addons.
+        C_Timer.After(2, SLI.RegisterChatFilters)
+
+        return
+    end
+
+    -- Cached item levels are keyed by item link, which cannot see a level-scaling or
+    -- Timewalking change, so drop them when either becomes possible.
+    if SLI.ResetItemLevelCaches then
+        SLI.ResetItemLevelCaches()
+    end
 end)

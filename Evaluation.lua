@@ -138,6 +138,62 @@ function SLI.GetDisplayedItemLevel(itemLink)
     return GetItemLevelFromTooltipData(C_TooltipInfo.GetHyperlink(itemLink))
 end
 
+local MAX_CACHED_ITEM_LEVELS = 300
+
+-- Building tooltip data is by far the most expensive part of decorating a link, and a
+-- loot burst repeats the same items across many messages, so memoize what was resolved.
+local displayedItemLevelCache = {}
+local displayedItemLevelCacheCount = 0
+local equippedSlotCache = {}
+
+local function IsItemDataCached(itemLink)
+    local getItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
+
+    if not getItemInfo then
+        return false
+    end
+
+    return getItemInfo(itemLink) ~= nil
+end
+
+local function ResolveDisplayedItemLevel(itemLink)
+    if not itemLink then
+        return nil
+    end
+
+    local cachedItemLevel = displayedItemLevelCache[itemLink]
+
+    if cachedItemLevel then
+        return cachedItemLevel
+    end
+
+    local itemLevel = SLI.GetDisplayedItemLevel(itemLink)
+
+    -- A partially loaded item can report its base level before bonus IDs apply, so only
+    -- remember levels that came from fully cached item data.
+    if itemLevel and IsItemDataCached(itemLink) then
+        if displayedItemLevelCacheCount >= MAX_CACHED_ITEM_LEVELS then
+            displayedItemLevelCache = {}
+            displayedItemLevelCacheCount = 0
+        end
+
+        displayedItemLevelCache[itemLink] = itemLevel
+        displayedItemLevelCacheCount = displayedItemLevelCacheCount + 1
+    end
+
+    return itemLevel
+end
+
+SLI.GetCachedDisplayedItemLevel = ResolveDisplayedItemLevel
+
+-- Level scaling and Timewalking can change the displayed level of an item link that did
+-- not itself change, so drop everything whenever that becomes possible.
+function SLI.ResetItemLevelCaches()
+    displayedItemLevelCache = {}
+    displayedItemLevelCacheCount = 0
+    equippedSlotCache = {}
+end
+
 local function GetDetailedItemLevelForComparison(itemLink)
     if not C_Item or not C_Item.GetDetailedItemLevelInfo then
         return nil
@@ -239,13 +295,7 @@ local function MatchesCurrentSpecialization(itemLink, specializationID)
     return false
 end
 
-local function GetEquippedItemInfo(slotID)
-    if not GetInventoryItemLink then
-        return nil, "unknown"
-    end
-
-    local equippedLink = GetInventoryItemLink("player", slotID)
-
+local function ComputeEquippedItemLevel(slotID, equippedLink)
     if not equippedLink then
         if GetInventoryItemID and GetInventoryItemID("player", slotID) then
             return nil, "unknown"
@@ -266,7 +316,7 @@ local function GetEquippedItemInfo(slotID)
         end
 
         if not itemLevel then
-            itemLevel = SLI.GetDisplayedItemLevel(equippedLink)
+            itemLevel = ResolveDisplayedItemLevel(equippedLink)
         end
     else
         itemLevel = GetDetailedItemLevelForComparison(equippedLink)
@@ -279,19 +329,52 @@ local function GetEquippedItemInfo(slotID)
     return itemLevel, "equipped"
 end
 
-local function GetEquippedItemEquipLoc(slotID)
-    if not GetInventoryItemLink or not C_Item or not C_Item.GetItemInfoInstant then
+-- Keyed on the equipped link so a gear change invalidates the entry without needing
+-- an event: reading the link is cheap, resolving its item level is not.
+local function GetEquippedSlotInfo(slotID)
+    if not GetInventoryItemLink then
         return nil
     end
 
     local equippedLink = GetInventoryItemLink("player", slotID)
+    local cachedInfo = equippedSlotCache[slotID]
 
-    if not equippedLink then
-        return nil
+    if cachedInfo and cachedInfo.link == equippedLink then
+        return cachedInfo
     end
 
-    local _, _, _, itemEquipLoc = C_Item.GetItemInfoInstant(equippedLink)
-    return itemEquipLoc
+    local slotInfo = { link = equippedLink }
+
+    if equippedLink and C_Item and C_Item.GetItemInfoInstant then
+        local _, _, _, itemEquipLoc = C_Item.GetItemInfoInstant(equippedLink)
+        slotInfo.equipLoc = itemEquipLoc
+    end
+
+    equippedSlotCache[slotID] = slotInfo
+
+    return slotInfo
+end
+
+local function GetEquippedItemInfo(slotID)
+    local slotInfo = GetEquippedSlotInfo(slotID)
+
+    if not slotInfo then
+        return nil, "unknown"
+    end
+
+    -- "unknown" only means the client has not cached the item yet, so retry it
+    -- instead of remembering the gap.
+    if not slotInfo.state or slotInfo.state == "unknown" then
+        slotInfo.itemLevel, slotInfo.state = ComputeEquippedItemLevel(slotID, slotInfo.link)
+    end
+
+    return slotInfo.itemLevel, slotInfo.state
+end
+
+local function GetEquippedItemEquipLoc(slotID)
+    local slotInfo = GetEquippedSlotInfo(slotID)
+
+    return slotInfo and slotInfo.equipLoc
 end
 
 local function GetComparisonSlots(itemEquipLoc)
@@ -380,7 +463,7 @@ local function BuildItemLevelComparisonText(itemLink, itemEquipLoc)
     -- Do not fall back to the raw API on modern clients: WoW 12.0 can return
     -- pre-squish values there while tooltip data is already squished.
     if C_TooltipInfo then
-        candidateItemLevel = SLI.GetDisplayedItemLevel(itemLink)
+        candidateItemLevel = ResolveDisplayedItemLevel(itemLink)
     else
         candidateItemLevel = GetDetailedItemLevelForComparison(itemLink)
     end
