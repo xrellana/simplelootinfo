@@ -344,10 +344,10 @@ local function Filter(eventName, message)
 end
 
 AssertEqual(
-    "Loot: Sword/One-Hand/639: " .. gearLink
+    "Loot: |cffa335ee|Hitem:19019:::::::::::::::|h[Sword/One-Hand/639: Thunderfury"
         .. " (Haste 120/Critical Strike 95/Mastery 80)"
-        .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|r"
-        .. " |cff67d8ff[Suitable]|r |cff55ff88[iLvl +8]|r",
+        .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|cffa335ee"
+        .. " |cff67d8ff[Suitable]|cffa335ee |cff55ff88[iLvl +8]|cffa335ee]|h|r",
     Filter("CHAT_MSG_LOOT", "Loot: " .. gearLink),
     "Default settings should append secondary stats in descending order."
 )
@@ -359,37 +359,55 @@ AssertEqual(
 )
 
 AssertEqual(
-    "Loot: Sword/One-Hand/639: " .. plainGearLink
+    "Loot: |cffa335ee|Hitem:888:::::::::::::::|h[Sword/One-Hand/639: Plain Gear"
         .. " (Haste 120/Critical Strike 95/Mastery 80)"
-        .. " |cff67d8ff[Suitable]|r |cff55ff88[iLvl +8]|r",
+        .. " |cff67d8ff[Suitable]|cffa335ee |cff55ff88[iLvl +8]|cffa335ee]|h|r",
     Filter("CHAT_MSG_LOOT", "Loot: " .. plainGearLink),
     "Gear without tertiary stats should not receive an empty highlighted group."
 )
 
 local twoLinks = Filter("CHAT_MSG_LOOT", gearLink .. " and " .. gearLink)
+local enhancedGearLink = "|cffa335ee|Hitem:19019:::::::::::::::|h[Sword/One-Hand/639: Thunderfury"
+    .. " (Haste 120/Critical Strike 95/Mastery 80)"
+    .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|cffa335ee"
+    .. " |cff67d8ff[Suitable]|cffa335ee |cff55ff88[iLvl +8]|cffa335ee]|h|r"
 AssertEqual(
-    "Sword/One-Hand/639: " .. gearLink .. " (Haste 120/Critical Strike 95/Mastery 80)"
-        .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|r"
-        .. " |cff67d8ff[Suitable]|r |cff55ff88[iLvl +8]|r"
-        .. " and Sword/One-Hand/639: " .. gearLink
-        .. " (Haste 120/Critical Strike 95/Mastery 80)"
-        .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|r"
-        .. " |cff67d8ff[Suitable]|r |cff55ff88[iLvl +8]|r",
+    enhancedGearLink .. " and " .. enhancedGearLink,
     twoLinks,
     "Every gear link in a message should be enhanced."
 )
 
+local _, twoLinkRCount = twoLinks:gsub("|r", "")
 AssertEqual(
-    "Sword/One-Hand/639: " .. gearLink
+    2,
+    twoLinkRCount,
+    "Each enhanced link should carry exactly one |r, at its very end, so an inner reset cannot drop the quality color."
+)
+
+local _, twoLinkBracketCount = twoLinks:gsub("%]|h", "")
+AssertEqual(
+    2,
+    twoLinkBracketCount,
+    "Every item should remain one closed bracket pair so consecutive links stay visually separated."
+)
+
+AssertNotContains(
+    twoLinks,
+    "|r|Hitem:",
+    "No addon text may sit between one link's reset and the next link."
+)
+
+AssertEqual(
+    "|cffa335ee|Hitem:19019:::::::::::::::|h[Sword/One-Hand/639: Thunderfury"
         .. " (Haste 120/Critical Strike 95/Mastery 80)"
-        .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|r",
+        .. " |cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|cffa335ee]|h|r",
     Filter("CHAT_MSG_SAY", gearLink),
     "Ordinary chat should keep the original enhancement without player-specific evaluation labels."
 )
 
 AssertContains(
     Filter("CHAT_MSG_LOOT", plateHeadLink),
-    "|cff67d8ff[Suitable]|r |cff55ff88[iLvl +9]|r",
+    "|cff67d8ff[Suitable]|cffa335ee |cff55ff88[iLvl +9]|cffa335ee",
     "Preferred armor with the current specialization's primary stat should be suitable and compared."
 )
 
@@ -487,24 +505,24 @@ AssertContains(
 local cannotEquipMessage = Filter("CHAT_MSG_LOOT", unusableHeadLink)
 AssertContains(
     cannotEquipMessage,
-    "|cffff5c5c[Cannot Equip]|r",
+    "|cffff5c5c[Cannot Equip]|cffa335ee",
     "Items rejected by the player usability API should be marked as not equippable."
 )
 AssertNotContains(cannotEquipMessage, "[iLvl", "Unusable gear should not receive an item-level comparison.")
 
 AssertContains(
     Filter("CHAT_MSG_LOOT", upgradeRingLink),
-    "|cff55ff88[iLvl +5]|r",
+    "|cff55ff88[iLvl +5]|cffa335ee",
     "Rings should compare against the lower of the two equipped ring item levels."
 )
 AssertContains(
     Filter("CHAT_MSG_LOOT", sameRingLink),
-    "|cffc7cbd1[Same iLvl]|r",
+    "|cffc7cbd1[Same iLvl]|cffa335ee",
     "Equal item levels should receive a neutral label."
 )
 AssertContains(
     Filter("CHAT_MSG_LOOT", lowerRingLink),
-    "|cffff8a65[iLvl -5]|r",
+    "|cffff8a65[iLvl -5]|cffa335ee",
     "Lower item levels should receive the downgrade label."
 )
 AssertEqual(
@@ -514,7 +532,7 @@ AssertEqual(
 )
 AssertContains(
     Filter("CHAT_MSG_LOOT", squishedLegsLink),
-    "|cff55ff88[iLvl +174]|r",
+    "|cff55ff88[iLvl +174]|cffa335ee",
     "Comparisons should use squished tooltip levels instead of the pre-squish API level."
 )
 addonNamespace.ResetItemLevelCaches()
@@ -559,25 +577,25 @@ C_TooltipInfo.GetInventoryItem = nil
 addonNamespace.ResetItemLevelCaches()
 AssertContains(
     Filter("CHAT_MSG_LOOT", upgradeRingLink),
-    "|cff55ff88[iLvl +5]|r",
+    "|cff55ff88[iLvl +5]|cffa335ee",
     "Equipped comparisons should fall back to the equipped link's tooltip data."
 )
 C_TooltipInfo.GetInventoryItem = getInventoryItemTooltip
 AssertContains(
     Filter("CHAT_MSG_LOOT", emptyNeckLink),
-    "|cff50e3c2[Empty Slot]|r",
+    "|cff50e3c2[Empty Slot]|cffa335ee",
     "An empty compatible slot should be identified directly."
 )
 AssertContains(
     Filter("CHAT_MSG_LOOT", unknownHeadLink),
-    "|cffadb3bd[Item Level Unknown]|r",
+    "|cffadb3bd[Item Level Unknown]|cffa335ee",
     "Missing tooltip item-level data must not fall back to an unreliable API guess."
 )
 
 equippedLinks[17] = "|cffa335ee|Hitem:5301:::::::::::::::|h[Equipped Off-Hand]|h|r"
 AssertContains(
     Filter("CHAT_MSG_LOOT", twoHandLink),
-    "|cffffc857[Different Weapon Setup]|r",
+    "|cffffc857[Different Weapon Setup]|cffa335ee",
     "Two-handed weapons should avoid a misleading one-slot comparison when an off-hand is equipped."
 )
 equippedLinks[17] = nil
@@ -600,7 +618,7 @@ SlashCmdList.SIMPLELOOTINFO("icon on")
 AssertEqual(true, SimpleLootInfoDB.showIcon, "Icon preference should be persisted.")
 AssertContains(
     Filter("CHAT_MSG_LOOT", gearLink),
-    "|T135771:14:14:0:0|t Sword/One-Hand/639:",
+    "|T135771:14:14:0:0|t |cffa335ee|Hitem:19019:::::::::::::::|h[Sword/One-Hand/639:",
     "The icon option should prepend the item texture."
 )
 
@@ -608,15 +626,15 @@ SlashCmdList.SIMPLELOOTINFO("secondary off")
 AssertEqual(false, SimpleLootInfoDB.showSecondary, "Secondary stat preference should be persisted.")
 AssertContains(
     Filter("CHAT_MSG_LOOT", gearLink),
-    "|cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|r",
+    "|cffffd100(Leech 48/Avoidance 36/Speed 24/Indestructible)|cffa335ee",
     "Tertiary stats should remain visible when secondary stats are disabled."
 )
 
 SlashCmdList.SIMPLELOOTINFO("tertiary off")
 AssertEqual(false, SimpleLootInfoDB.showTertiary, "Tertiary stat preference should be persisted.")
 AssertEqual(
-    "Loot: |T135771:14:14:0:0|t Sword/One-Hand/639: " .. gearLink
-        .. " |cff67d8ff[Suitable]|r |cff55ff88[iLvl +8]|r",
+    "Loot: |T135771:14:14:0:0|t |cffa335ee|Hitem:19019:::::::::::::::|h[Sword/One-Hand/639: Thunderfury"
+        .. " |cff67d8ff[Suitable]|cffa335ee |cff55ff88[iLvl +8]|cffa335ee]|h|r",
     Filter("CHAT_MSG_LOOT", "Loot: " .. gearLink),
     "Secondary and tertiary stats should be independently disableable."
 )
@@ -627,7 +645,7 @@ SlashCmdList.SIMPLELOOTINFO("type off")
 SlashCmdList.SIMPLELOOTINFO("slot off")
 AssertContains(
     Filter("CHAT_MSG_LOOT", gearLink),
-    "|T135771:14:14:0:0|t 639:",
+    "|T135771:14:14:0:0|t |cffa335ee|Hitem:19019:::::::::::::::|h[639:",
     "Display components should be independently configurable."
 )
 

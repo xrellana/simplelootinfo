@@ -94,8 +94,8 @@ local EQUIPMENT_SLOTS = {
     INVTYPE_THROWN = { SLOT_IDS.MAINHAND },
 }
 
-local function ColorLabel(text, color)
-    return color .. "[" .. text .. "]|r"
+local function ColorLabel(text, color, restoreColor)
+    return color .. "[" .. text .. "]" .. (restoreColor or "|r")
 end
 
 local ITEM_LEVEL_LINE_TYPE = Enum
@@ -447,9 +447,9 @@ local function GetLowestEquippedItemLevel(slotIDs)
     return lowestItemLevel, "equipped"
 end
 
-local function BuildItemLevelComparisonText(itemLink, itemEquipLoc)
+local function BuildItemLevelComparisonText(itemLink, itemEquipLoc, restoreColor)
     if NeedsManualWeaponComparison(itemEquipLoc) then
-        return ColorLabel(L.differentWeaponSetup, EVALUATION_COLORS.differentWeaponSetup)
+        return ColorLabel(L.differentWeaponSetup, EVALUATION_COLORS.differentWeaponSetup, restoreColor)
     end
 
     local slotIDs = GetComparisonSlots(itemEquipLoc)
@@ -469,33 +469,33 @@ local function BuildItemLevelComparisonText(itemLink, itemEquipLoc)
     end
 
     if not candidateItemLevel then
-        return ColorLabel(L.itemLevelUnknown, EVALUATION_COLORS.unknown)
+        return ColorLabel(L.itemLevelUnknown, EVALUATION_COLORS.unknown, restoreColor)
     end
 
     local equippedItemLevel, state = GetLowestEquippedItemLevel(slotIDs)
 
     if state == "empty" then
-        return ColorLabel(L.emptySlot, EVALUATION_COLORS.empty)
+        return ColorLabel(L.emptySlot, EVALUATION_COLORS.empty, restoreColor)
     end
 
     if state == "unknown" then
-        return ColorLabel(L.itemLevelUnknown, EVALUATION_COLORS.unknown)
+        return ColorLabel(L.itemLevelUnknown, EVALUATION_COLORS.unknown, restoreColor)
     end
 
     local difference = candidateItemLevel - equippedItemLevel
 
     if difference > 0 then
-        return ColorLabel(string.format(L.itemLevelDelta, difference), EVALUATION_COLORS.upgrade)
+        return ColorLabel(string.format(L.itemLevelDelta, difference), EVALUATION_COLORS.upgrade, restoreColor)
     end
 
     if difference < 0 then
-        return ColorLabel(string.format(L.itemLevelDelta, difference), EVALUATION_COLORS.downgrade)
+        return ColorLabel(string.format(L.itemLevelDelta, difference), EVALUATION_COLORS.downgrade, restoreColor)
     end
 
-    return ColorLabel(L.sameItemLevel, EVALUATION_COLORS.same)
+    return ColorLabel(L.sameItemLevel, EVALUATION_COLORS.same, restoreColor)
 end
 
-function SLI.BuildEquipmentEvaluationText(itemLink, itemID, classID, subClassID, itemEquipLoc, itemStats)
+function SLI.BuildEquipmentEvaluationText(itemLink, itemID, classID, subClassID, itemEquipLoc, itemStats, restoreColor)
     local settings = SLI.settings
 
     if not settings.showSuitability and not settings.showUpgrade then
@@ -519,7 +519,7 @@ function SLI.BuildEquipmentEvaluationText(itemLink, itemID, classID, subClassID,
 
     if not C_PlayerInfo.CanUseItem(itemID) then
         if settings.showSuitability then
-            return ColorLabel(L.cannotEquip, EVALUATION_COLORS.cannotEquip)
+            return ColorLabel(L.cannotEquip, EVALUATION_COLORS.cannotEquip, restoreColor)
         end
 
         return nil
@@ -532,7 +532,7 @@ function SLI.BuildEquipmentEvaluationText(itemLink, itemID, classID, subClassID,
         playerContext.classToken
     ) then
         if settings.showSuitability then
-            return ColorLabel(L.wrongArmorType, EVALUATION_COLORS.wrongArmorType)
+            return ColorLabel(L.wrongArmorType, EVALUATION_COLORS.wrongArmorType, restoreColor)
         end
 
         return nil
@@ -540,7 +540,7 @@ function SLI.BuildEquipmentEvaluationText(itemLink, itemID, classID, subClassID,
 
     if not MatchesPrimaryStat(itemStats, playerContext.primaryStat) then
         if settings.showSuitability then
-            return ColorLabel(L.wrongPrimaryStat, EVALUATION_COLORS.wrongPrimaryStat)
+            return ColorLabel(L.wrongPrimaryStat, EVALUATION_COLORS.wrongPrimaryStat, restoreColor)
         end
 
         return nil
@@ -548,7 +548,7 @@ function SLI.BuildEquipmentEvaluationText(itemLink, itemID, classID, subClassID,
 
     if not MatchesCurrentSpecialization(itemLink, playerContext.specializationID) then
         if settings.showSuitability then
-            return ColorLabel(L.notCurrentSpec, EVALUATION_COLORS.notCurrentSpec)
+            return ColorLabel(L.notCurrentSpec, EVALUATION_COLORS.notCurrentSpec, restoreColor)
         end
 
         return nil
@@ -557,11 +557,11 @@ function SLI.BuildEquipmentEvaluationText(itemLink, itemID, classID, subClassID,
     local labels = {}
 
     if settings.showSuitability then
-        table.insert(labels, ColorLabel(L.suitable, EVALUATION_COLORS.suitable))
+        table.insert(labels, ColorLabel(L.suitable, EVALUATION_COLORS.suitable, restoreColor))
     end
 
     if settings.showUpgrade then
-        local comparisonText = BuildItemLevelComparisonText(itemLink, itemEquipLoc)
+        local comparisonText = BuildItemLevelComparisonText(itemLink, itemEquipLoc, restoreColor)
 
         if comparisonText then
             table.insert(labels, comparisonText)

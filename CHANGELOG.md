@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0
+
+### Changed
+
+- Moved every added detail inside the item link's own brackets so consecutive gear links keep the native `[...]` separation instead of running together.
+- Colored segments inside a link now restore the item's quality color explicitly rather than emitting `|r`, which could reset the link color and render the rest of the link in the channel color.
+- The optional icon stays outside the link so it cannot split the clickable region.
+
 ## 1.4.4
 
 ### Changed

@@ -123,6 +123,23 @@ local function GetStatText(itemStats, statDefinitions)
     return table.concat(parts, "/")
 end
 
+local function DecomposeItemLink(itemLink)
+    local color, linkOpen, itemName, linkClose =
+        itemLink:match("^(|c%x%x%x%x%x%x%x%x)(|Hitem:.-|h)%[(.-)%](|h|r)$")
+
+    if color then
+        return color, linkOpen, itemName, linkClose
+    end
+
+    linkOpen, itemName, linkClose = itemLink:match("^(|Hitem:.-|h)%[(.-)%](|h)$")
+
+    if linkOpen then
+        return "", linkOpen, itemName, linkClose
+    end
+
+    return nil
+end
+
 function SLI.BuildEnhancedItemLink(itemLink, includeEvaluation)
     local settings = SLI.settings
 
@@ -142,6 +159,17 @@ function SLI.BuildEnhancedItemLink(itemLink, includeEvaluation)
         SLI.DebugPrint("Not equipment:", itemID, classID, itemEquipLoc or "nil")
         return itemLink
     end
+
+    local color, linkOpen, itemName, linkClose = DecomposeItemLink(itemLink)
+
+    if not linkOpen then
+        SLI.DebugPrint("Unrecognized item link shape:", itemID)
+        return itemLink
+    end
+
+    -- No |r may appear inside the hyperlink body: it can reset the outer quality
+    -- color instead of restoring it. Re-apply the link color explicitly instead.
+    local restoreColor = color ~= "" and color or "|r"
 
     local slotName = GetEquipmentSlotName(itemEquipLoc)
     local typeName = itemSubType or itemType or "Equipment"
@@ -177,22 +205,18 @@ function SLI.BuildEnhancedItemLink(itemLink, includeEvaluation)
 
     SLI.DebugPrint("Enhanced item:", itemID, typeName or "nil", slotName or "nil", itemLevel or "nil")
 
-    local enhancedLink = itemLink
+    local displayText = itemName
 
     if #details > 0 then
-        enhancedLink = table.concat(details, "/") .. ": " .. enhancedLink
-    end
-
-    if settings.showIcon and icon then
-        enhancedLink = string.format("|T%s:14:14:0:0|t %s", icon, enhancedLink)
+        displayText = table.concat(details, "/") .. ": " .. displayText
     end
 
     if secondaryStatText then
-        enhancedLink = enhancedLink .. " (" .. secondaryStatText .. ")"
+        displayText = displayText .. " (" .. secondaryStatText .. ")"
     end
 
     if tertiaryStatText then
-        enhancedLink = enhancedLink .. " " .. TERTIARY_COLOR .. "(" .. tertiaryStatText .. ")|r"
+        displayText = displayText .. " " .. TERTIARY_COLOR .. "(" .. tertiaryStatText .. ")" .. restoreColor
     end
 
     if includeEvaluation then
@@ -202,12 +226,21 @@ function SLI.BuildEnhancedItemLink(itemLink, includeEvaluation)
             classID,
             subClassID,
             itemEquipLoc,
-            itemStats
+            itemStats,
+            restoreColor
         )
 
         if evaluationText then
-            enhancedLink = enhancedLink .. " " .. evaluationText
+            displayText = displayText .. " " .. evaluationText
         end
+    end
+
+    local enhancedLink = color .. linkOpen .. "[" .. displayText .. "]" .. linkClose
+
+    -- The icon stays outside the hyperlink: a texture inside the body can split the
+    -- clickable region.
+    if settings.showIcon and icon then
+        enhancedLink = string.format("|T%s:14:14:0:0|t %s", icon, enhancedLink)
     end
 
     return enhancedLink
