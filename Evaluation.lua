@@ -3,17 +3,21 @@ local _, SLI = ...
 local L = SLI.L
 
 local EVALUATION_COLORS = {
-    suitable = "|cff67d8ff",
-    upgrade = "|cff55ff88",
-    same = "|cffc7cbd1",
-    downgrade = "|cffff8a65",
-    empty = "|cff50e3c2",
-    wrongArmorType = "|cffffc857",
-    wrongPrimaryStat = "|cffffc857",
-    notCurrentSpec = "|cffffc857",
-    cannotEquip = "|cffff5c5c",
-    unknown = "|cffadb3bd",
-    differentWeaponSetup = "|cffffc857",
+    -- Suitable is the expected, positive case, so it inherits the item's quality
+    -- color instead of adding a seventh hue next to it.
+    suitable = "",
+    -- Every hue here stays clear of the item quality colors, which now sit inside
+    -- the same brackets: 1eff00, 0070dd, a335ee, ff8000 and e6cc80.
+    upgrade = "|cff58c98a",
+    same = "|cff7f8790",
+    downgrade = "|cffa86a62",
+    empty = "|cff58c98a",
+    wrongArmorType = "|cffc9a227",
+    wrongPrimaryStat = "|cffc9a227",
+    notCurrentSpec = "|cffc9a227",
+    cannotEquip = "|cffb5504c",
+    unknown = "|cff6f757c",
+    differentWeaponSetup = "|cffc9a227",
 }
 
 local PRIMARY_STAT_KEYS = {
@@ -95,7 +99,11 @@ local EQUIPMENT_SLOTS = {
 }
 
 local function ColorLabel(text, color, restoreColor)
-    return color .. "[" .. text .. "]" .. (restoreColor or "|r")
+    if color == "" then
+        return text
+    end
+
+    return color .. text .. (restoreColor or "|r")
 end
 
 local ITEM_LEVEL_LINE_TYPE = Enum

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.1
+
+### Changed
+
+- Dropped the square brackets around evaluation labels. Now that every detail sits inside the item link's own brackets, a bracketed label competed with the brackets that mark where one item ends and the next begins.
+- Reworked the evaluation colors so hue encodes how much attention a label deserves instead of which label it is. `Suitable` now inherits the item's quality color, an upgrade is the only bright label, and everything else is muted.
+- Moved every evaluation color clear of the item quality colors, which now share the same brackets and were being misread as a second item's quality.
+
 ## 1.5.0
 
 ### Changed
