@@ -155,13 +155,11 @@ local displayedItemLevelCacheCount = 0
 local equippedSlotCache = {}
 
 local function IsItemDataCached(itemLink)
-    local getItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
-
-    if not getItemInfo then
+    if not C_Item or not C_Item.GetItemInfo then
         return false
     end
 
-    return getItemInfo(itemLink) ~= nil
+    return C_Item.GetItemInfo(itemLink) ~= nil
 end
 
 local function ResolveDisplayedItemLevel(itemLink)

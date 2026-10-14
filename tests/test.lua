@@ -275,7 +275,8 @@ C_TooltipInfo = {
 }
 
 -- The real API returns the item name first and is nil until the item is cached.
-GetItemInfo = function(itemLink)
+-- WoW 12.1.5 removed the global GetItemInfo, so only the C_Item version exists.
+C_Item.GetItemInfo = function(itemLink)
     return "Test Item", itemLink, 4, 639
 end
 

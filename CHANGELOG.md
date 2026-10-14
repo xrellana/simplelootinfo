@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.2
+
+### Fixed
+
+- Supported WoW 12.1.5 (Interface 120105). The patch removed the deprecated global `GetItemInfo`, so the item-level fallback now calls `C_Item.GetItemInfo` instead of erroring inside the chat filter.
+
 ## 1.5.1
 
 ### Changed

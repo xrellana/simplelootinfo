@@ -1,9 +1,9 @@
 ## X-Curse-Project-ID: 1628535
-## Interface: 120100
+## Interface: 120100, 120105
 ## Title: SimpleLootInfo
 ## Notes: Show item type, equipment slot, item level and secondary/tertiary stats on gear links, plus loot suitability and item-level comparisons.
 ## Author: Zane
-## Version: 1.5.1
+## Version: 1.5.2
 ## SavedVariables: SimpleLootInfoDB
 
 SimpleLootInfo.lua

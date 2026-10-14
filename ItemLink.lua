@@ -40,8 +40,8 @@ local function GetItemLevel(itemLink, itemID)
         itemLevel = C_Item.GetDetailedItemLevelInfo(itemLink)
     end
 
-    if not itemLevel then
-        local _, _, _, fallbackItemLevel = GetItemInfo(itemLink)
+    if not itemLevel and C_Item and C_Item.GetItemInfo then
+        local _, _, _, fallbackItemLevel = C_Item.GetItemInfo(itemLink)
         itemLevel = fallbackItemLevel
     end
 
